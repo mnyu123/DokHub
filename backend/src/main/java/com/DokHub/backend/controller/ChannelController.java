@@ -1,7 +1,6 @@
 package com.DokHub.backend.controller;
 
 import com.DokHub.backend.dto.ChannelDto;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -9,8 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-// Vue 개발서버 주소 - CORS 문제때문에
-@CrossOrigin(origins = "*") // 모든 도메인 허용 - 망할 CORS 문제때문에
 public class ChannelController {
 
     // 기본 경로("/") 매핑 추가
