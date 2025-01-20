@@ -122,12 +122,12 @@ export default {
         let url = "";
         // 탭에 따라 다른 URL 호출
         if (this.selectedTab === "clip") {
-          url = "https://dokhub-backend2.fly.dev/api/channels-clip";
+          url = "https://dokhub-backend2.fly.dev/api/channels/clip";
         } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels-song";
+          url = "https://dokhub-backend2.fly.dev/api/channels/song";
         } else {
           // 본채널
-          url = "https://dokhub-backend2.fly.dev/api/channels-main";
+          url = "https://dokhub-backend2.fly.dev/api/channels/main";
         }
 
         const response = await axios.get(url, {
