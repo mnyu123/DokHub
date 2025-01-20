@@ -1,27 +1,27 @@
 <template>
   <!-- 최상위 div :class="themeClass" 사용 -->
-   <div id="app"  :class="themeClass">
+  <div id="app" :class="themeClass">
     <!-- 헤더 -->
-    <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center']">
-    <!-- 로고/아이콘 -->
-    <img
-        src="@/assets/doksaem.png"
-        alt="독쌤 캐릭터"
-        style="max-height: 80px;"
-        class="img-fluid me-3"
-    />
+    <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center', 'justify-content-between']">
+      <!-- 로고/아이콘 -->
+      <div class="d-flex align-items-center">
+        <img
+          src="@/assets/doksaem.png"
+          alt="독쌤 캐릭터"
+          style="max-height: 80px;"
+          class="img-fluid me-3"
+        />
+        <!-- 텍스트 (독 허 브) -->
+        <h1 class="m-0" style="font-size: 1.5rem;">독 허 브</h1>
+      </div>
 
-  <!-- 텍스트 (독 허 브) -->
-  <h1 class="m-0" style="font-size: 1.5rem;">독 허 브</h1>
-</header>
-
-    <!-- 라이트 / 다크 모드 전환 버튼 -->
-    <button class="btn btn-outline-secondary float-end" @click="toggleTheme">
+      <!-- 라이트 / 다크 모드 전환 버튼 -->
+      <button class="btn btn-outline-secondary" @click="toggleTheme">
         {{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}
       </button>
+    </header>
 
-
-      <!-- 좌 / 중앙 / 우 레이아웃 -->
+    <!-- 좌 / 중앙 / 우 레이아웃 -->
     <div class="container">
       <div class="row">
         <!-- 좌측 GIF -->
@@ -70,11 +70,9 @@
       </div>
     </div>
 
-
     <!-- 푸터 -->
     <!-- 다크 모드 여부를 prop으로 전달 -->
     <FooterComponent :isDark="theme === 'dark'" />
-
   </div>
 </template>
 
