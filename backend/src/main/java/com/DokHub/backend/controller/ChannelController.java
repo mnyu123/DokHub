@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000") // Vue 개발서버 주소 - CORS 문제때문에
+// Vue 개발서버 주소 - CORS 문제때문에
+@CrossOrigin(origins = "*") // 모든 도메인 허용 - 망할 CORS 문제때문에
 public class ChannelController {
 
     // 기본 경로("/") 매핑 추가
