@@ -83,13 +83,12 @@ export default {
     };
   },
   watch: {
-   // 탭 변경될 때마다 page=0으로 리셋, 재요청
-    selectedTab(newVal, oldVal) {
-     this.page = 0;            // 페이지 리셋
-     this.fetchTotalCount();   // 전체 개수 재요청
-     this.fetchChannels();     // 새 탭으로 목록 재요청
-    }
-  },
+  async selectedTab() {
+    this.page = 0; // 페이지 초기화
+    await this.fetchTotalCount(); // totalCount 요청 완료 후
+    this.fetchChannels();         // 채널 목록 요청
+  }
+},
   computed: {
     tabTitle() {
       if (this.selectedTab === "clip") return "클립 채널";
@@ -101,52 +100,51 @@ export default {
       return Math.ceil(this.totalCount / this.size);
     },
   },
-  mounted() {
-    this.fetchTotalCount();
-    this.fetchChannels();
+  async mounted() {
+  await this.fetchTotalCount(); // totalCount 요청 완료 후
+  this.fetchChannels();         // 채널 목록 요청
+},
+methods: {
+  async fetchTotalCount() {
+    try {
+      let url = "";
+      if (this.selectedTab === "clip") {
+        url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
+      } else if (this.selectedTab === "song") {
+        url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
+      } else {
+        url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
+      }
+      const response = await axios.get(url);
+      this.totalCount = response.data;
+    } catch (error) {
+      console.error(error);
+    }
   },
-  methods: {
-    async fetchTotalCount() {
-      try {
-        let url = "";
-        if (this.selectedTab === "clip") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
-        } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
-        } else {
-          url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
-        }
-        const response = await axios.get(url);
-        this.totalCount = response.data;
-      } catch (error) {
-        console.error(error);
+  async fetchChannels() {
+    try {
+      this.loading = true;
+      let url = "";
+      if (this.selectedTab === "clip") {
+        url = "https://dokhub-backend2.fly.dev/api/channels/clip";
+      } else if (this.selectedTab === "song") {
+        url = "https://dokhub-backend2.fly.dev/api/channels/song";
+      } else {
+        url = "https://dokhub-backend2.fly.dev/api/channels/main";
       }
-    },
-    async fetchChannels() {
-      try {
-        this.loading = true;
-        let url = "";
-        if (this.selectedTab === "clip") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/clip";
-        } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/song";
-        } else {
-          url = "https://dokhub-backend2.fly.dev/api/channels/main";
-        }
-
-        const response = await axios.get(url, {
-          params: {
-            page: this.page,
-            size: this.size,
-          },
-        });
-        this.allChannels = response.data;
-      } catch (error) {
-        console.error(error);
-      } finally {
-        this.loading = false;
-      }
-    },
+      const response = await axios.get(url, {
+        params: {
+          page: this.page,
+          size: this.size,
+        },
+      });
+      this.allChannels = response.data;
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.loading = false;
+    }
+  },
     prevPage() {
       if (this.page > 0) {
         this.page--;
