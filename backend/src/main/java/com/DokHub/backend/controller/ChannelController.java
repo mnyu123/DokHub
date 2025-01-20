@@ -12,6 +12,12 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:3000") // Vue 개발서버 주소 - CORS 문제때문에
 public class ChannelController {
 
+    // 기본 경로("/") 매핑 추가
+    @GetMapping("/")
+    public String home() {
+        return "Dokhub 404 notnot found";
+    }
+
     @GetMapping("/api/channels")
     public List<ChannelDto> getChannels() {
         List<ChannelDto> channels = new ArrayList<>();
