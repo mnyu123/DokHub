@@ -98,13 +98,13 @@ export default {
     await this.fetchTotalCount();
     await this.fetchChannels();
   },
-  watch: {
-   // props로 받은 selectedTab이 바뀔 때마다(clip→song 등)
-   // page를 0으로 리셋하고, 다시 fetch
-  selectedTab(newVal, oldVal) {
-     this.page = 0; // 0번 페이지로 초기화
-     this.fetchTotalCount();
-     this.fetchChannels();
+   watch: {
+   // props로 받은 selectedTab이 바뀔 때 (clip→song, song→main 등)
+   // page를 0으로 리셋 + fetchTotalCount & fetchChannels 호출
+    selectedTab(newVal, oldVal) {
+     this.page = 0;          // 페이지 초기화
+     this.fetchTotalCount(); // 카테고리 바뀌었으니 totalCount 재요청
+     this.fetchChannels();   // 새 탭의 목록 데이터 재요청
    }
  },
   methods: {

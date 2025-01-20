@@ -56,7 +56,10 @@
             </button>
           </nav>
 
-          <ChannelList :selectedTab="selectedTab" />
+          <ChannelList
+            :selectedTab="selectedTab"
+            :key="selectedTab"
+          />
         </div>
 
         <!-- 우측 GIF -->
