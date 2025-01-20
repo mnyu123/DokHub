@@ -1,20 +1,43 @@
 <template>
     <div>
-      <h2 v-if="selectedTab === 'clip'">클립 채널</h2>
-      <h2 v-else-if="selectedTab === 'song'">노래 채널</h2>
-      <h2 v-else-if="selectedTab === 'main'">본채널</h2>
+      <!-- 탭별 제목 -->
+    <h3 class="mb-3" v-if="selectedTab === 'clip'">클립 채널</h3>
+    <h3 class="mb-3" v-else-if="selectedTab === 'song'">노래 채널</h3>
+    <h3 class="mb-3" v-else>본채널</h3>
   
-      <div v-for="(channel, index) in filteredChannels" :key="index" class="channel-card">
-        <img :src="channel.videoPreviewUrl" alt="video preview" class="preview-img" />
-        <div class="channel-info">
-          <h3>{{ channel.channelName }}</h3>
-          <a :href="channel.channelLink" target="_blank" rel="noopener noreferrer">
-            채널 바로가기
-          </a>
+      <!-- 채널 카드 리스트 -->
+    <div
+      class="card mb-3"
+      v-for="(channel, idx) in filteredChannels"
+      :key="idx"
+    >
+      <div class="row g-0">
+        <!-- 썸네일 이미지 -->
+        <div class="col-4 col-md-3">
+          <img
+            :src="channel.videoPreviewUrl"
+            class="img-fluid rounded-start"
+            alt="video preview"
+          />
+        </div>
+        <!-- 채널 이름 & 링크 -->
+        <div class="col-8 col-md-9">
+          <div class="card-body">
+            <h5 class="card-title">{{ channel.channelName }}</h5>
+            <a
+              class="btn btn-link p-0"
+              :href="channel.channelLink"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              채널 바로가기
+            </a>
+          </div>
         </div>
       </div>
     </div>
-  </template>
+  </div>
+</template>
   
   <script>
   import axios from 'axios'
@@ -54,22 +77,7 @@
   </script>
   
   <style scoped>
-  .channel-card {
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin: 10px 0;
-    display: flex;
-    align-items: center;
-  }
-  .preview-img {
-    width: 120px;
-    height: 90px;
-    object-fit: cover;
-    margin-right: 10px;
-  }
-  .channel-info a {
-    color: blue;
-    text-decoration: underline;
-  }
+  /* card, img-fluid은 Bootstrap 클래스 활용
+     여기서 추가로 커스텀할 부분 있으면 작성 */
   </style>
   
