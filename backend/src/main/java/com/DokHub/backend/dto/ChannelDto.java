@@ -8,10 +8,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChannelDto {
-    private String category;   // "clip", "song", "main" 등
-    private String channelName;
-    private String channelLink;
-    private String videoPreviewUrl; // 영상 미리보기 Thumbnail 또는 Embeded url
+    private String category;   // "clip(클립채널)", "song(노래방저장채널)", "main(독케익 본채널)" 등
+    private String channelName; // 채널 이름
+    private String channelLink; // 클립 채널 하이퍼링크
+    private String videoPreviewUrl; // 유튜브 영상 하나 썸네일만 보여주는거
     // 필요 시 더 추가 (예: videoId, etc.)
 }
 
