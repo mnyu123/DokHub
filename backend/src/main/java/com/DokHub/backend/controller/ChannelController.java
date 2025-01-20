@@ -106,6 +106,54 @@ public class ChannelController {
                 "https://img.youtube.com/vi/PA-HVJo4poY/hqdefault.jpg"
         ));
         channels.add(new ChannelDto(
+                "clip",
+                "중졸무직백수",
+                "https://www.youtube.com/channel/UCs8kwn-14cOEKquR68mh4Zg",
+                "https://img.youtube.com/vi/dWVch0FeFlI/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "clip",
+                "버츄얼_놀이터",
+                "https://www.youtube.com/@%EB%B2%84%EC%B8%84%EC%96%BC_%EB%86%80%EC%9D%B4%ED%84%B0/videos",
+                "https://img.youtube.com/vi/nDWpyGt_Pxc/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "clip",
+                "버츄얼 누렁이",
+                "https://www.youtube.com/channel/UCch1rtV23tpy_sXl-40fmVA",
+                "https://img.youtube.com/vi/uNwwaOzPX5w/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "clip",
+                "버츄얼발사대",
+                "https://www.youtube.com/channel/UC7L6SFyG4n_2fFYjAsSbr1A",
+                "https://img.youtube.com/vi/DH6lQO9itcE/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "clip",
+                "독케익 쇼츠 공방",
+                "https://www.youtube.com/@dogcakeshorts",
+                "https://img.youtube.com/vi/0q4Mntonmqw/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "clip",
+                "디지털 짬통",
+                "https://www.youtube.com/channel/UCFWy7mbDZxpLv1N66O5xQWg",
+                "https://img.youtube.com/vi/vGmGesA2npA/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "clip",
+                "자계계",
+                "https://www.youtube.com/channel/UCqn9I3-R_1wBpM2P6vM0TBA",
+                "https://img.youtube.com/vi/raLrru8ttaA/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
+                "song",
+                "노래하는독케익",
+                "https://www.youtube.com/channel/UC33I4AsN0E2IPyO_JVwDpVQ",
+                "https://img.youtube.com/vi/Bmuhreba5O0/hqdefault.jpg"
+        ));
+        channels.add(new ChannelDto(
                 "main",
                 "독케익 본채널",
                 "https://www.youtube.com/@%EB%8F%85%EC%BC%80%EC%9D%B5%EC%9C%A0%ED%8A%9C%EB%B8%8C",
