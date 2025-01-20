@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ChannelService {
@@ -156,25 +157,32 @@ public class ChannelService {
     }
 
     /**
-     * 페이지 번호(page), 페이지 크기(size)에 맞춰 채널 목록을 반환
+     * 특정 카테고리(category)로 필터링 후, 페이지 번호(page), 페이지 크기(size)에 맞춰 채널 목록을 반환
      */
-    public List<ChannelDto> getChannelsPaged(int page, int size) {
-        int startIndex = page * size;
-        int endIndex = Math.min(startIndex + size, allChannels.size());
+    public List<ChannelDto> getChannelsPaged(String category, int page, int size) {
+        // 1) category로 필터링
+        List<ChannelDto> filtered = allChannels.stream()
+                .filter(ch -> ch.getCategory().equalsIgnoreCase(category))
+                .collect(Collectors.toList());
 
-        if (startIndex >= allChannels.size()) {
-            // 페이지 범위를 벗어났을 때는 빈 리스트
+        // 2) 페이징 처리
+        int startIndex = page * size;
+        int endIndex = Math.min(startIndex + size, filtered.size());
+
+        if (startIndex >= filtered.size()) {
             return Collections.emptyList();
         }
 
-        return allChannels.subList(startIndex, endIndex);
+        return filtered.subList(startIndex, endIndex);
     }
 
     /**
-     * 전체 채널 목록의 크기를 반환 (페이징 정보 확인용)
+     * 특정 카테고리(category)에 해당하는 채널 개수 반환
      */
-    public int getTotalCount() {
-        return allChannels.size();
+    public int getTotalCount(String category) {
+        return (int) allChannels.stream()
+                .filter(ch -> ch.getCategory().equalsIgnoreCase(category))
+                .count();
     }
 }
 
