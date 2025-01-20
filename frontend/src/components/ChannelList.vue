@@ -82,6 +82,14 @@ export default {
       totalCount: 0,
     };
   },
+  watch: {
+   // 탭 변경될 때마다 page=0으로 리셋, 재요청
+    selectedTab(newVal, oldVal) {
+     this.page = 0;            // 페이지 리셋
+     this.fetchTotalCount();   // 전체 개수 재요청
+     this.fetchChannels();     // 새 탭으로 목록 재요청
+    }
+  },
   computed: {
     tabTitle() {
       if (this.selectedTab === "clip") return "클립 채널";
@@ -93,20 +101,10 @@ export default {
       return Math.ceil(this.totalCount / this.size);
     },
   },
-  async mounted() {
-    // 컴포넌트가 처음 로드될 때 clip 탭일 경우 fetch
-    await this.fetchTotalCount();
-    await this.fetchChannels();
+  mounted() {
+    this.fetchTotalCount();
+    this.fetchChannels();
   },
-   watch: {
-   // props로 받은 selectedTab이 바뀔 때 (clip→song, song→main 등)
-   // page를 0으로 리셋 + fetchTotalCount & fetchChannels 호출
-    selectedTab(newVal, oldVal) {
-     this.page = 0;          // 페이지 초기화
-     this.fetchTotalCount(); // 카테고리 바뀌었으니 totalCount 재요청
-     this.fetchChannels();   // 새 탭의 목록 데이터 재요청
-   }
- },
   methods: {
     async fetchTotalCount() {
       try {
