@@ -1,60 +1,122 @@
 <template>
-  <div id="app">
-    <!-- 상단 독쌤 캐릭터 이미지 -->
-    <header>
-      <img src="@/assets/dokcake.png" alt="독쌤 캐릭터" style="height: 100px;" />
-      <!-- 간단한 메뉴 -->
-      <nav>
-        <button @click="selectedTab = 'clip'">클립</button>
-        <button @click="selectedTab = 'song'">노래</button>
-        <button @click="selectedTab = 'main'">본채널</button>
-      </nav>
-    </header>
-    
-    <!-- 좌우 GIF -->
-    <div style="display: flex; justify-content: space-between;">
-      <img src="@/assets/left.gif" alt="좌측GIF" style="width: 100px;" />
-      <div style="flex: 1; margin: 0 20px;">
-        <!-- 채널 리스트 컴포넌트 -->
-        <ChannelList :selectedTab="selectedTab" />
+  <!-- 최상위 div :class="themeClass" 사용 -->
+   <div id="app"  :class="themeClass">
+    <!-- 헤더 -->
+    <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center']">
+    <!-- 로고/아이콘 -->
+    <img
+        src="@/assets/doksaem.png"
+        alt="독쌤 캐릭터"
+        style="max-height: 80px;"
+        class="img-fluid me-3"
+    />
+
+  <!-- 텍스트 (독 허 브) -->
+  <h1 class="m-0" style="font-size: 1.5rem;">독 허 브</h1>
+</header>
+
+    <!-- 라이트 / 다크 모드 전환 버튼 -->
+    <button class="btn btn-outline-secondary float-end" @click="toggleTheme">
+        {{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}
+      </button>
+
+
+      <!-- 좌 / 중앙 / 우 레이아웃 -->
+    <div class="container">
+      <div class="row">
+        <!-- 좌측 GIF -->
+        <div class="col-12 col-md-2 text-center mb-3 mb-md-0">
+          <img
+            src="@/assets/left.gif"
+            alt="좌측GIF"
+            class="img-fluid"
+          />
+        </div>
+
+        <!-- 중앙 콘텐츠 (ChannelList) -->
+        <div class="col-12 col-md-8">
+          <nav class="mb-3">
+            <button
+              class="btn btn-primary me-2"
+              @click="selectedTab = 'clip'"
+            >
+              클립
+            </button>
+            <button
+              class="btn btn-success me-2"
+              @click="selectedTab = 'song'"
+            >
+              노래
+            </button>
+            <button
+              class="btn btn-warning"
+              @click="selectedTab = 'main'"
+            >
+              본채널
+            </button>
+          </nav>
+
+          <ChannelList :selectedTab="selectedTab" />
+        </div>
+
+        <!-- 우측 GIF -->
+        <div class="col-12 col-md-2 text-center mt-3 mt-md-0">
+          <img
+            src="@/assets/right.gif"
+            alt="우측GIF"
+            class="img-fluid"
+          />
+        </div>
       </div>
-      <img src="@/assets/right.gif" alt="우측GIF" style="width: 100px;" />
     </div>
+
+
+    <!-- 푸터 -->
+    <!-- 다크 모드 여부를 prop으로 전달 -->
+    <FooterComponent :isDark="theme === 'dark'" />
+
   </div>
 </template>
 
 <script>
-import ChannelList from './components/ChannelList.vue'
+import FooterComponent from '@/components/FooterComponent.vue' // 푸터 import
+import ChannelList from './components/ChannelList.vue' // 채널목록 Springboot에서 가져온거 내용
 
 export default {
   name: 'App',
   components: {
+    FooterComponent,
     ChannelList
   },
   data() {
     return {
-      selectedTab: 'clip'
+      selectedTab: 'clip',
+      theme: 'light' // 기본 라이트 모드
+    }
+  },
+  computed: {
+    themeClass() {
+      // 다크일 때 배경 검정 + 글씨 흰색 / 라이트면 흰색 + 검정글씨
+      return this.theme === 'dark' ? 'bg-dark text-white' : 'bg-white'
+    },
+    headerClass() {
+      return this.theme === 'dark' ? 'bg-secondary' : 'bg-light'
+    }
+  },
+  methods: {
+    toggleTheme() {
+      this.theme = (this.theme === 'light') ? 'dark' : 'light'
     }
   }
 }
 </script>
 
 <style>
-/* 기본 스타일 */
-body {
+/* 여기에 Bootstrap 클래스로도 커버 안 되는 부분을 추가로 커스텀 CSS */
+/* 전역/공용 스타일 */
+body, html {
   margin: 0;
-  font-family: Arial, sans-serif;
-}
-header {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  background: #f4f4f4;
-}
-nav {
-  margin-left: 20px;
-}
-button {
-  margin-right: 10px;
+  padding: 0;
+  font-family: 'Jua', sans-serif !important;
 }
 </style>
