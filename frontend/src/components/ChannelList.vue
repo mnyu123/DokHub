@@ -72,18 +72,17 @@ import axios from "axios";
 
 export default {
   name: "ChannelList",
-  props: ["selectedTab"], // clip / song / main
+  props: ["selectedTab"],
   data() {
     return {
-      allChannels: [],    // 서버에서 받은 채널 목록 (이미 서버가 카테고리 필터링 적용)
-      loading: true,      // 로딩 상태
-      page: 0,            // 현재 페이지(0부터 시작)
-      size: 7,            // 페이지당 표시 개수
-      totalCount: 0,      // 현재 카테고리의 전체 채널 개수
+      allChannels: [],
+      loading: true,
+      page: 0,
+      size: 7,
+      totalCount: 0,
     };
   },
   computed: {
-    // 탭 제목 (필요에 따라 사용)
     tabTitle() {
       if (this.selectedTab === "clip") return "클립 채널";
       if (this.selectedTab === "song") return "노래 채널";
@@ -91,61 +90,66 @@ export default {
       return "채널 목록";
     },
     maxPage() {
-      // 총 페이지 수 = ceil(전체 개수 / 페이지당 개수)
       return Math.ceil(this.totalCount / this.size);
     },
   },
   async mounted() {
-    // 컴포넌트 마운트 시 전체 개수 & 페이지 데이터 호출
-    await this.fetchTotalCount();  // 전체 채널 수 (현재 탭 기준)
-    await this.fetchChannels();    // 해당 탭 / 페이지의 채널 목록
+    await this.fetchTotalCount();
+    await this.fetchChannels();
   },
   methods: {
-    // 카테고리별 totalCount
     async fetchTotalCount() {
-      try {
-        const response = await axios.get(
-          "https://dokhub-backend2.fly.dev/api/channels/totalCount",
-          {
-            params: {
-              category: this.selectedTab, // clip/song/main
-            },
-          }
-        );
-        this.totalCount = response.data;
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    // 카테고리별 채널 목록 (페이징)
+  try {
+    let url = "";
+    // 서버에서 페이징용 총 개수받아오는거
+    if (this.selectedTab === "clip") {
+     url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
+    } else if (this.selectedTab === "song") {
+     url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
+    } else {
+     url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
+    }
+    const response = await axios.get(url);
+    this.totalCount = response.data;
+  } catch (error) {
+    console.error(error);
+  }
+},
+    // 서버에서 카테고리 별 채널정보 받아오는거
     async fetchChannels() {
       try {
-        this.loading = true; // 로딩 시작
-        const response = await axios.get(
-          "https://dokhub-backend2.fly.dev/api/channels",
-          {
-            params: {
-              category: this.selectedTab, // clip/song/main
-              page: this.page,
-              size: this.size,
-            },
-          }
-        );
-        this.allChannels = response.data; 
+        this.loading = true;
+        let url = "";
+        // 탭에 따라 다른 URL 호출
+        if (this.selectedTab === "clip") {
+          url = "https://dokhub-backend2.fly.dev/api/channels-clip";
+        } else if (this.selectedTab === "song") {
+          url = "https://dokhub-backend2.fly.dev/api/channels-song";
+        } else {
+          // 본채널
+          url = "https://dokhub-backend2.fly.dev/api/channels-main";
+        }
+
+        const response = await axios.get(url, {
+          params: {
+            page: this.page,
+            size: this.size,
+          },
+        });
+        this.allChannels = response.data;
       } catch (error) {
         console.error(error);
       } finally {
-        this.loading = false; // 로딩 종료
+        this.loading = false;
       }
     },
-    // 이전 페이지
+    // === [변경된 부분 끝] ===
     prevPage() {
       if (this.page > 0) {
         this.page--;
         this.fetchChannels();
       }
     },
-    // 다음 페이지
     nextPage() {
       if (this.page < this.maxPage - 1) {
         this.page++;
@@ -155,6 +159,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .text-center {

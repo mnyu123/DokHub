@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/channels")
 public class ChannelController {
 
     private final ChannelService channelService;
@@ -15,32 +16,60 @@ public class ChannelController {
         this.channelService = channelService;
     }
 
+    // 기본 경로("/")
     @GetMapping("/")
     public String home() {
         return "Dokhub 404 notnot found";
     }
 
-    /**
-     * 예: /api/channels?category=clip&page=0&size=7
-     * category 기본값 "clip" (필요하면 "clip" 대신 "" 로 해서 전체?)
-     */
-    @GetMapping("/api/channels")
-    public List<ChannelDto> getChannels(
-            @RequestParam(defaultValue = "clip") String category,
+    // =============================================================
+    // 1) clip 전용
+    // =============================================================
+    @GetMapping("/clip")
+    public List<ChannelDto> getClipChannels(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "7") int size
     ) {
-        return channelService.getChannelsPaged(category, page, size);
+        // Service에서 category="clip" 으로 페이징
+        return channelService.getChannelsPaged("clip", page, size);
     }
 
-    /**
-     * 전체 채널 수(카테고리별)
-     * 예: /api/channels/totalCount?category=clip
-     */
-    @GetMapping("/api/channels/totalCount")
-    public int getChannelsTotalCount(
-            @RequestParam(defaultValue = "clip") String category
+    @GetMapping("/clip/totalCount")
+    public int getClipCount() {
+        return channelService.getTotalCount("clip");
+    }
+
+    // =============================================================
+    // 2) song 전용
+    // =============================================================
+    @GetMapping("/song")
+    public List<ChannelDto> getSongChannels(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size
     ) {
-        return channelService.getTotalCount(category);
+        // Service에서 category="song"
+        return channelService.getChannelsPaged("song", page, size);
+    }
+
+    @GetMapping("/song/totalCount")
+    public int getSongCount() {
+        return channelService.getTotalCount("song");
+    }
+
+    // =============================================================
+    // 3) main 전용
+    // =============================================================
+    @GetMapping("/main")
+    public List<ChannelDto> getMainChannels(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size
+    ) {
+        // Service에서 category="main"
+        return channelService.getChannelsPaged("main", page, size);
+    }
+
+    @GetMapping("/main/totalCount")
+    public int getMainCount() {
+        return channelService.getTotalCount("main");
     }
 }
