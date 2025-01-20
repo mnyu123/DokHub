@@ -66,7 +66,9 @@
           // CORS 문제 피하려면 절대주소 X
           // axios.get('http://localhost:8080/api/channels') // <- 이렇게 하면 CORS 에러 발생
           // 아래처럼 '/api/...' 형식으로
-          const response = await axios.get('/api/channels')
+          // const response = await axios.get('/api/channels') // 로컬 환경에서
+          // 실제 환경
+          const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/channels`)
           this.allChannels = response.data
         } catch (error) {
           console.error(error)
