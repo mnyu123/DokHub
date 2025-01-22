@@ -43,6 +43,15 @@
         </div>
       </div>
 
+      <!-- 독쌤의 한마디: 본채널 탭에서만 보여줌 -->
+      <div
+        v-if="selectedTab === 'main'"
+        class="doksaem-comment mt-4 p-3 text-warning text-center"
+      >
+        <h5>독쌤의 한마디:</h5>
+        <p>왜 본채널은 하나야?</p>
+      </div>
+
       <!-- 페이징 버튼 -->
       <div class="d-flex justify-content-center align-items-center mt-4">
         <button 
@@ -105,15 +114,17 @@ export default {
   this.fetchChannels();         // 채널 목록 요청
 },
 methods: {
-  async fetchTotalCount() {
+  async fetchTotalCount() { // 페이징을 위한 총 개수받기
     try {
       let url = "";
       if (this.selectedTab === "clip") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
+      // 개발서버 : http://localhost:8080/api/channels/clip             // 끝에 clip,song,main 구분
+      // product 서버 : https://dokhub-backend2.fly.dev/api/channels/clip/totalCount     // 중간에 clip,song,main 구분
+        url = "http://localhost:8080/api/channels/clip/totalCount";
       } else if (this.selectedTab === "song") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
+        url = "http://localhost:8080/api/channels/song/totalCount";
       } else {
-        url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
+        url = "http://localhost:8080/api/channels/main/totalCount";
       }
       const response = await axios.get(url);
       this.totalCount = response.data;
@@ -121,22 +132,35 @@ methods: {
       console.error(error);
     }
   },
-  async fetchChannels() {
+  async fetchChannels() { // 서버에서 줄 채널목록 JSON 형식
     try {
       this.loading = true;
       let url = "";
       if (this.selectedTab === "clip") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/clip";
+        // 개발서버 : http://localhost:8080/api/channels/clip
+        // product 서버 : https://dokhub-backend2.fly.dev/api/channels/clip
+        url = "http://localhost:8080/api/channels/clip";
       } else if (this.selectedTab === "song") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/song";
+        url = "http://localhost:8080/api/channels/song";
       } else {
-        url = "https://dokhub-backend2.fly.dev/api/channels/main";
+        url = "http://localhost:8080/api/channels/main";
       }
       const response = await axios.get(url, {
         params: {
           page: this.page,
           size: this.size,
         },
+        // 최적화 1. 필요한 데이터만 가져오기
+        transformResponse: [
+        function (data) {
+          const parsed = JSON.parse(data);
+          return parsed.map((item) => ({
+            channelName: item.channelName,
+            channelLink: item.channelLink,
+            videoPreviewUrl: item.videoPreviewUrl,
+          }));
+        },
+      ],
       });
       this.allChannels = response.data;
     } catch (error) {

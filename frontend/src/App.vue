@@ -12,7 +12,7 @@
           class="img-fluid me-3"
         />
         <!-- 텍스트 (독 허 브) -->
-        <h1 class="m-0" style="font-size: 1.5rem;">독 허 브</h1>
+        <h1 class="m-0" style="font-size: 1.5rem;">독 허 브 v0.4</h1>
       </div>
 
       <!-- 라이트 / 다크 모드 전환 버튼 -->
@@ -69,6 +69,13 @@
             alt="우측GIF"
             class="img-fluid"
           />
+          <div class="update-box mt-3 p-3 text-white bg-secondary rounded">
+            <h2>v0.4 업데이트 내역</h2>
+            <ul>
+              <li>신규 키리누키 추가</li>
+              <li>본채널 추가</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -119,5 +126,10 @@ body, html {
   margin: 0;
   padding: 0;
   font-family: 'Jua', sans-serif !important;
+}
+.update-box {
+  background-color: #343a40;
+  border: 1px solid #ccc;
+  border-radius: 8px;
 }
 </style>
