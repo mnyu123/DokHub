@@ -43,6 +43,15 @@
         </div>
       </div>
 
+      <!-- 독쌤의 한마디: 본채널 탭에서만 보여줌 -->
+      <div
+        v-if="selectedTab === 'main'"
+        class="doksaem-comment mt-4 p-3 text-warning text-center"
+      >
+        <h5>독쌤의 한마디:</h5>
+        <p>왜 본채널은 하나야?</p>
+      </div>
+
       <!-- 페이징 버튼 -->
       <div class="d-flex justify-content-center align-items-center mt-4">
         <button 
@@ -141,6 +150,17 @@ methods: {
           page: this.page,
           size: this.size,
         },
+        // 최적화 1. 필요한 데이터만 가져오기
+        transformResponse: [
+        function (data) {
+          const parsed = JSON.parse(data);
+          return parsed.map((item) => ({
+            channelName: item.channelName,
+            channelLink: item.channelLink,
+            videoPreviewUrl: item.videoPreviewUrl,
+          }));
+        },
+      ],
       });
       this.allChannels = response.data;
     } catch (error) {
