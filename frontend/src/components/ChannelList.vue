@@ -8,17 +8,30 @@
       <p>채널 목록을 불러오는 중입니다...</p>
     </div>
 
-    <!-- 데이터가 로드된 후 채널 리스트 표시 -->
+    <!-- 데이터 표시 -->
     <div v-else>
-      <!-- 제목 표시 (선택) -->
-      <h3 class="mb-3">
-        {{ tabTitle }}
-      </h3>
+      <!-- 정렬 버튼 추가 -->
+      <nav class="mb-3 d-flex justify-content-end">
+        <button 
+          class="btn btn-outline-secondary me-2" 
+          @click="sortBy = 'latest'"
+          :class="{ 'btn-primary': sortBy === 'latest' }"
+        >
+          최신순
+        </button>
+        <button 
+          class="btn btn-outline-secondary" 
+          @click="sortBy = 'name'"
+          :class="{ 'btn-primary': sortBy === 'name' }"
+        >
+          이름순
+        </button>
+      </nav>
 
-      <!-- 서버에서 이미 카테고리별로 필터한 채널 목록이 allChannels에 담김 -->
-      <div class="card mb-3" v-for="(channel, idx) in allChannels" :key="idx">
+      <!-- 채널 리스트 -->
+      <div class="card mb-3" v-for="(channel, idx) in sortedChannels" :key="idx">
         <div class="row g-0">
-          <!-- 썸네일 이미지 -->
+          <!-- 썸네일 -->
           <div class="col-4 col-md-3">
             <img
               :src="channel.videoPreviewUrl"
@@ -26,7 +39,8 @@
               alt="video preview"
             />
           </div>
-          <!-- 채널 이름 & 링크 -->
+
+          <!-- 채널 정보 -->
           <div class="col-8 col-md-9">
             <div class="card-body">
               <h5 class="card-title">{{ channel.channelName }}</h5>
@@ -38,6 +52,36 @@
               >
                 채널 바로가기
               </a>
+
+              <!-- 최신 영상 섹션 -->
+              <div class="mt-3">
+                <h6>최신 영상</h6>
+                <div v-if="channel.recentVideos.length === 0" class="text-muted">
+                  최신 영상 정보가 없습니다.
+                </div>
+                <div class="row" v-else>
+                  <div 
+                    class="col-6 col-md-4 mb-2"
+                    v-for="(video, index) in channel.recentVideos" 
+                    :key="index"
+                  >
+                    <a 
+                      :href="`https://youtu.be/${video.videoId}`" 
+                      target="_blank"
+                      class="text-decoration-none"
+                    >
+                      <img
+                        :src="video.thumbnailUrl"
+                        class="img-thumbnail video-thumbnail"
+                        :alt="video.videoTitle"
+                      />
+                      <p class="small text-muted mt-1 text-truncate">
+                        {{ video.videoTitle }}
+                      </p>
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -52,9 +96,7 @@
         >
           이전
         </button>
-
         <span>Page {{ page + 1 }} / {{ maxPage }}</span>
-
         <button 
           class="btn btn-secondary ms-3" 
           @click="nextPage" 
@@ -72,7 +114,7 @@ import axios from "axios";
 
 export default {
   name: "ChannelList",
-  props: ["selectedTab"], // clip / song / main
+  props: ["selectedTab"],
   data() {
     return {
       allChannels: [],
@@ -80,16 +122,22 @@ export default {
       page: 0,
       size: 7,
       totalCount: 0,
+      sortBy: "latest" // 정렬 기준 추가
     };
   },
-  watch: {
-  async selectedTab() {
-    this.page = 0; // 페이지 초기화
-    await this.fetchTotalCount(); // totalCount 요청 완료 후
-    this.fetchChannels();         // 채널 목록 요청
-  }
-},
   computed: {
+    // 정렬된 채널 목록
+    sortedChannels() {
+      return [...this.allChannels].sort((a, b) => {
+        if (this.sortBy === "latest") {
+          const aDate = a.recentVideos[0]?.publishedAt || 0;
+          const bDate = b.recentVideos[0]?.publishedAt || 0;
+          return new Date(bDate) - new Date(aDate);
+        } else {
+          return a.channelName.localeCompare(b.channelName);
+        }
+      });
+    },
     tabTitle() {
       if (this.selectedTab === "clip") return "클립 채널";
       if (this.selectedTab === "song") return "노래 채널";
@@ -98,53 +146,62 @@ export default {
     },
     maxPage() {
       return Math.ceil(this.totalCount / this.size);
+    }
+  },
+  watch: {
+    async selectedTab() {
+      this.page = 0;
+      await this.fetchTotalCount();
+      this.fetchChannels();
     },
+    // sortBy() {
+    //   this.fetchChannels(); // 정렬 방식 변경 시 리스트 갱신
+    // }
   },
   async mounted() {
-  await this.fetchTotalCount(); // totalCount 요청 완료 후
-  this.fetchChannels();         // 채널 목록 요청
-},
-methods: {
-  async fetchTotalCount() {
-    try {
-      let url = "";
-      if (this.selectedTab === "clip") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
-      } else if (this.selectedTab === "song") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
-      } else {
-        url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
-      }
-      const response = await axios.get(url);
-      this.totalCount = response.data;
-    } catch (error) {
-      console.error(error);
-    }
+    await this.fetchTotalCount();
+    this.fetchChannels();
   },
-  async fetchChannels() {
-    try {
-      this.loading = true;
-      let url = "";
-      if (this.selectedTab === "clip") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/clip";
-      } else if (this.selectedTab === "song") {
-        url = "https://dokhub-backend2.fly.dev/api/channels/song";
-      } else {
-        url = "https://dokhub-backend2.fly.dev/api/channels/main";
+  methods: {
+    async fetchTotalCount() {
+      try {
+        let url = "";
+        if (this.selectedTab === "clip") {
+          // http://localhost:3000
+          // https://dokhub-backend2.fly.dev/api/channels/clip/totalCount
+          url = "http://localhost:8080/api/channels/clip/totalCount";
+        } else if (this.selectedTab === "song") {
+          url = "http://localhost:8080/api/channels/song/totalCount";
+        } else {
+          url = "http://localhost:8080/api/channels/main/totalCount";
+        }
+        const response = await axios.get(url);
+        this.totalCount = response.data;
+      } catch (error) {
+        console.error(error);
       }
-      const response = await axios.get(url, {
-        params: {
-          page: this.page,
-          size: this.size,
-        },
-      });
-      this.allChannels = response.data;
-    } catch (error) {
-      console.error(error);
-    } finally {
-      this.loading = false;
-    }
-  },
+    },
+    async fetchChannels() {
+      try {
+        this.loading = true;
+        let url = "";
+        if (this.selectedTab === "clip") {
+          url = "http://localhost:8080/api/channels/clip";
+        } else if (this.selectedTab === "song") {
+          url = "http://localhost:8080/api/channels/song";
+        } else {
+          url = "http://localhost:8080/api/channels/main";
+        }
+        const response = await axios.get(url, {
+          params: { page: this.page, size: this.size },
+        });
+        this.allChannels = response.data;
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
+    },
     prevPage() {
       if (this.page > 0) {
         this.page--;
@@ -156,11 +213,29 @@ methods: {
         this.page++;
         this.fetchChannels();
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
 <style scoped>
-/* 동일 */
+.video-thumbnail {
+  transition: transform 0.2s;
+  max-width: 120px;
+}
+
+.video-thumbnail:hover {
+  transform: scale(1.05);
+}
+
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-outline-secondary.btn-primary {
+  background-color: #0d6efd;
+  color: white !important;
+}
 </style>

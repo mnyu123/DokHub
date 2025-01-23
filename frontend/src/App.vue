@@ -27,7 +27,7 @@
         <!-- 좌측 GIF -->
         <div class="col-12 col-md-2 text-center mb-3 mb-md-0">
           <img
-            src="@/assets/left.gif"
+            src="@/assets/newleft.gif"
             alt="좌측GIF"
             class="img-fluid"
           />
@@ -69,6 +69,16 @@
             alt="우측GIF"
             class="img-fluid"
           />
+          <div class="update-box mt-3 p-3 text-white bg-secondary rounded">
+            <h2>v0.4 업데이트 내역</h2>
+            <ul>
+              <li>신규 키리누키 추가</li>
+              <li>본채널 추가</li>
+              <li>채널이름 최신순,이름순 정렬</li>
+              <li>채널별 최신영상 3개 조회</li>
+              <li>움짤바꾼건 귀여워서 넣었습니다.[진지]</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -92,7 +102,7 @@ export default {
   data() {
     return {
       selectedTab: 'clip',
-      theme: 'light' // 기본 라이트 모드
+      theme: 'dark' // 기본 라이트 모드 -> 다크모드로 변경
     }
   },
   computed: {
@@ -119,5 +129,12 @@ body, html {
   margin: 0;
   padding: 0;
   font-family: 'Jua', sans-serif !important;
+}
+.update-box {
+  background-color: #343a40;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-right: -20px;  /* 오른쪽으로 20px 밀어냄 */
+  width: calc(100% + 20px); /* 너비 보정 */
 }
 </style>

@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# .env 파일 무시
+src/main/resources/.env
