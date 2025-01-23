@@ -154,6 +154,24 @@ public class ChannelService {
                 "https://www.youtube.com/@%EB%8F%85%EC%BC%80%EC%9D%B5%EC%9C%A0%ED%8A%9C%EB%B8%8C",
                 "https://img.youtube.com/vi/x7vWA6vqwZE/hqdefault.jpg"
         ));
+        allChannels.add(new ChannelDto(
+                "clip",
+                "유통기한확인하기",
+                "https://www.youtube.com/@%EC%9C%A0%ED%86%B5%EA%B8%B0%ED%95%9C%ED%99%95%EC%9D%B8%ED%95%98%EA%B8%B0/videos",
+                "https://img.youtube.com/vi/fqWOw_3C6eA/hqdefault.jpg"
+        ));
+        allChannels.add(new ChannelDto(
+                "main",
+                "독케익 다시보기",
+                "https://www.youtube.com/@%EB%8F%85%EC%BC%80%EC%9D%B5%EB%8B%A4%EC%8B%9C%EB%B3%B4%EA%B8%B0",
+                "https://img.youtube.com/vi/RpVXie0v7-I/hqdefault.jpg"
+        ));
+        allChannels.add(new ChannelDto(
+                "clip",
+                "subchnn",
+                "https://www.youtube.com/@subchnn",
+                "https://img.youtube.com/vi/THbbZhYMcJc/hqdefault.jpg"
+        ));
     }
 
     /**
