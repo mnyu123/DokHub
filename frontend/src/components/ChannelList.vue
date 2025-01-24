@@ -34,7 +34,7 @@
           <!-- 썸네일 -->
           <div class="col-4 col-md-3">
             <img
-              :src="channel.thumbnailUrl || '@/assets/doksame3.gif'"
+              :src="channel.thumbnailUrl || require('@/assets/doksame3.gif')"
               class="img-fluid rounded-start"
               alt="video preview"
             />
@@ -65,16 +65,16 @@
                     class="col-6 col-md-4 mb-2"
                     v-for="(video, index) in channel.recentVideos" 
                     :key="index"
-                  >
+                    >
                     <a 
                       :href="`https://youtu.be/${video.videoId}`" 
                       target="_blank"
                       class="text-decoration-none"
                     >
-                      <img
-                        :src="video.thumbnailUrl"
-                        class="img-thumbnail video-thumbnail"
-                        :alt="video.videoTitle"
+                    <img
+                    :src="video.thumbnailUrl || require('@/assets/dok22.gif')"
+                    class="img-thumbnail video-thumbnail"
+                    :alt="video.videoTitle"
                       />
                       <p class="small text-muted mt-1 text-truncate">
                         {{ video.videoTitle }}
