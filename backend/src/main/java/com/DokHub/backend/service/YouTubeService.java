@@ -64,6 +64,7 @@ public class YouTubeService {
     }
 
     // 2. 채널 썸네일 가져오기
+    @Cacheable(value = "channelThumbnails", key = "#channelId") // API 요청횟수 넘많아서 캐싱적용
     public String getChannelThumbnail(String channelId) {
         String url = "https://www.googleapis.com/youtube/v3/channels"
                 + "?part=snippet"
