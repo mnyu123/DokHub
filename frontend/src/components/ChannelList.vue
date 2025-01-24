@@ -34,7 +34,7 @@
           <!-- 썸네일 -->
           <div class="col-4 col-md-3">
             <img
-              :src="channel.videoPreviewUrl"
+              :src="channel.thumbnailUrl || '@/assets/doksame3.gif'"
               class="img-fluid rounded-start"
               alt="video preview"
             />
@@ -56,7 +56,8 @@
               <!-- 최신 영상 섹션 -->
               <div class="mt-3">
                 <h6>최신 영상</h6>
-                <div v-if="channel.recentVideos.length === 0" class="text-muted">
+                <!-- 빈 배열도 렌더링 가능하도록 조건 수정 -->
+                <div v-if="!channel.recentVideos || channel.recentVideos.length === 0" class="text-muted">
                   최신 영상 정보가 없습니다.
                 </div>
                 <div class="row" v-else>
@@ -155,9 +156,11 @@ export default {
       await this.fetchTotalCount();
       this.fetchChannels();
     },
-    // sortBy() {
-    //   this.fetchChannels(); // 정렬 방식 변경 시 리스트 갱신
-    // }
+    sortBy() {
+      if (this.allChannels.length > 0) {
+        this.allChannels = [...this.allChannels]; // 트리거 업데이트
+      }
+    }
   },
   async mounted() {
     await this.fetchTotalCount();
@@ -168,13 +171,13 @@ export default {
       try {
         let url = "";
         if (this.selectedTab === "clip") {
-          // http://localhost:3000
+          // http://localhost:8080
           // https://dokhub-backend2.fly.dev/api/channels/clip/totalCount
-          url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
+          url = "http://localhost:3000/api/channels/clip/totalCount";
         } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
+          url = "http://localhost:8080/api/channels/song/totalCount";
         } else {
-          url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
+          url = "http://localhost:8080/api/channels/main/totalCount";
         }
         const response = await axios.get(url);
         this.totalCount = response.data;
@@ -183,20 +186,49 @@ export default {
       }
     },
     async fetchChannels() {
+      const category = this.selectedTab;
+      const page = this.page;
+
+      // === localStorage 캐싱 로직 추가 ===
+      // fetchChannels 메서드 내에 추가
+      const cachedData = localStorage.getItem(`channels_${category}_page_${page}`);
+      if (cachedData) {
+        this.allChannels = JSON.parse(cachedData);
+        this.loading = false;
+      return;
+      }
+      // ==============================
+
+      // 이미 메모리 캐시에 있는지 확인
+      if (this.channelCache[page]) {
+        this.allChannels = this.channelCache[page];
+        this.loading = false;
+        return;
+      }
+
       try {
         this.loading = true;
         let url = "";
         if (this.selectedTab === "clip") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/clip";
+          url = "http://localhost:8080/api/channels/clip";
         } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/song";
+          url = "http://localhost:8080/api/channels/song";
         } else {
-          url = "https://dokhub-backend2.fly.dev/api/channels/main";
+          url = "http://localhost:8080/api/channels/main";
         }
         const response = await axios.get(url, {
           params: { page: this.page, size: this.size },
         });
+
+         // === localStorage 캐싱 로직 추가 ===
+        // 데이터 로드 후 캐시에 저장
+        localStorage.setItem(`channels_${category}_page_${page}`, JSON.stringify(response.data));
+        // ==============================
+
+        // 메모리 캐시에 저장
+        this.channelCache[page] = response.data;
         this.allChannels = response.data;
+
       } catch (error) {
         console.error(error);
       } finally {
