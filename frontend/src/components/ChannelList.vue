@@ -169,11 +169,11 @@ export default {
         if (this.selectedTab === "clip") {
           // http://localhost:3000
           // https://dokhub-backend2.fly.dev/api/channels/clip/totalCount
-          url = "http://localhost:8080/api/channels/clip/totalCount";
+          url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
         } else if (this.selectedTab === "song") {
-          url = "http://localhost:8080/api/channels/song/totalCount";
+          url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
         } else {
-          url = "http://localhost:8080/api/channels/main/totalCount";
+          url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
         }
         const response = await axios.get(url);
         this.totalCount = response.data;
@@ -186,11 +186,11 @@ export default {
         this.loading = true;
         let url = "";
         if (this.selectedTab === "clip") {
-          url = "http://localhost:8080/api/channels/clip";
+          url = "https://dokhub-backend2.fly.dev/api/channels/clip";
         } else if (this.selectedTab === "song") {
-          url = "http://localhost:8080/api/channels/song";
+          url = "https://dokhub-backend2.fly.dev/api/channels/song";
         } else {
-          url = "http://localhost:8080/api/channels/main";
+          url = "https://dokhub-backend2.fly.dev/api/channels/main";
         }
         const response = await axios.get(url, {
           params: { page: this.page, size: this.size },
