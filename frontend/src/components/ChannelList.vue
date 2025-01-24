@@ -122,7 +122,8 @@ export default {
       page: 0,
       size: 7,
       totalCount: 0,
-      sortBy: "latest" // 정렬 기준 추가
+      sortBy: "latest", // 정렬 기준 추가
+      channelCache: {}, // 페이지별 캐시 추가
     };
   },
   computed: {
