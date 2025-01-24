@@ -23,16 +23,18 @@ public class YouTubeService {
     public YouTubeService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
 
-        // .env 파일 경로 명시적 지정
-        Dotenv dotenv = Dotenv.configure()
-                .directory("src/main/resources")
-                .ignoreIfMalformed()
-                .ignoreIfMissing()
-                .load();
+        // 개발환경시 사용
+//        // .env 파일 경로 명시적 지정
+//        Dotenv dotenv = Dotenv.configure()
+//                .directory("src/main/resources")
+//                .ignoreIfMalformed()
+//                .ignoreIfMissing()
+//                .load();
+//
+//        this.apiKey = dotenv.get("YOUTUBE_API_KEY");
+//        // System.out.println("Loaded API Key: " + this.apiKey); // 로깅 추가
 
-        this.apiKey = dotenv.get("YOUTUBE_API_KEY");
-        // System.out.println("Loaded API Key: " + this.apiKey); // 로깅 추가
-
+        // API 키가 설정되지 않은 경우 예외 처리
         if (this.apiKey == null || this.apiKey.isEmpty()) {
             throw new IllegalStateException("YOUTUBE_API_KEY가 설정되지 않았습니다.");
         }
