@@ -4,6 +4,7 @@ import com.DokHub.backend.dto.VideoInfoDto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.cdimascio.dotenv.Dotenv;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class YouTubeService {
+    @Value("${youtube.api.key}")
     private String apiKey;
     private final RestTemplate restTemplate;
 
