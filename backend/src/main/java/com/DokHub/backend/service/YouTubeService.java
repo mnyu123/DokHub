@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
 
 @Service
 public class YouTubeService {
-    @Value("${youtube.api.key}")
     private String apiKey;
     private final RestTemplate restTemplate;
 
-    public YouTubeService(RestTemplate restTemplate) {
+    public YouTubeService(RestTemplate restTemplate, @Value("${youtube.api.key:}") String apiKey) {
         this.restTemplate = restTemplate;
+        this.apiKey = apiKey;
 
         // 개발환경시 사용
 //        // .env 파일 경로 명시적 지정
@@ -34,7 +34,7 @@ public class YouTubeService {
 //        this.apiKey = dotenv.get("YOUTUBE_API_KEY");
 //        // System.out.println("Loaded API Key: " + this.apiKey); // 로깅 추가
 
-        // API 키가 설정되지 않은 경우 예외 처리
+        // API 키가 없을 경우 예외 발생
         if (this.apiKey == null || this.apiKey.isEmpty()) {
             throw new IllegalStateException("YOUTUBE_API_KEY가 설정되지 않았습니다.");
         }
