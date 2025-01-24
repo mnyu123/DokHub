@@ -11,7 +11,9 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,9 +39,46 @@ public class YouTubeService {
         }
     }
 
-    // 1. 채널의 최신 영상 3개 가져오기
+    /**
+     * 여러 채널의 썸네일을 한 번에 가져오는 메서드
+     */
+    @Cacheable(value = "channelThumbnailsBatch", key = "#channelIds")
+    public Map<String, String> getChannelThumbnailsBatch(List<String> channelIds) {
+        if (channelIds == null || channelIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        String joinedIds = String.join(",", channelIds);
+        String url = "https://www.googleapis.com/youtube/v3/channels"
+                + "?part=snippet"
+                + "&id=" + joinedIds
+                + "&key=" + apiKey;
+
+        try {
+            YouTubeChannelResponse response = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+            Map<String, String> thumbnails = new HashMap<>();
+            for (YouTubeChannelResponse.Item item : response.getItems()) {
+                thumbnails.put(item.getId(), item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl());
+            }
+            return thumbnails;
+        } catch (Exception e) {
+            // 예외 발생 시 모든 채널에 대해 기본 썸네일을 반환
+            return channelIds.stream().collect(Collectors.toMap(
+                    id -> id,
+                    id -> "https://example.com/default_thumbnail.jpg"
+            ));
+        }
+    }
+
+    /**
+     * 특정 채널의 최근 영상 3개를 가져오는 메서드
+     */
     @Cacheable(value = "youtubeVideos", key = "#channelId")
     public List<VideoInfoDto> getRecentVideos(String channelId) {
+        if (channelId == null || channelId.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         String url = "https://www.googleapis.com/youtube/v3/search"
                 + "?part=snippet"
                 + "&channelId=" + channelId
@@ -50,6 +89,10 @@ public class YouTubeService {
 
         try {
             YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
+            if (response == null || response.getItems() == null) {
+                return Collections.emptyList();
+            }
+
             return response.getItems().stream()
                     .map(item -> new VideoInfoDto(
                             item.getId().getVideoId(),
@@ -63,21 +106,47 @@ public class YouTubeService {
         }
     }
 
-    // 2. 채널 썸네일 가져오기
-    @Cacheable(value = "channelThumbnails", key = "#channelId") // API 요청횟수 넘많아서 캐싱적용
-    public String getChannelThumbnail(String channelId) {
-        String url = "https://www.googleapis.com/youtube/v3/channels"
-                + "?part=snippet"
-                + "&id=" + channelId
-                + "&key=" + apiKey;
-
-        try {
-            YouTubeChannelResponse response = restTemplate.getForObject(url, YouTubeChannelResponse.class);
-            return response.getItems().get(0).getSnippet().getThumbnails().getDefaultThumbnail().getUrl();
-        } catch (Exception e) {
-            return "https://example.com/default_thumbnail.jpg"; // 기본 썸네일 URL
-        }
-    }
+//    // 1. 채널의 최신 영상 3개 가져오기
+//    @Cacheable(value = "youtubeVideos", key = "#channelId")
+//    public List<VideoInfoDto> getRecentVideos(String channelId) {
+//        String url = "https://www.googleapis.com/youtube/v3/search"
+//                + "?part=snippet"
+//                + "&channelId=" + channelId
+//                + "&maxResults=3"
+//                + "&order=date"
+//                + "&type=video"
+//                + "&key=" + apiKey;
+//
+//        try {
+//            YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
+//            return response.getItems().stream()
+//                    .map(item -> new VideoInfoDto(
+//                            item.getId().getVideoId(),
+//                            item.getSnippet().getTitle(),
+//                            LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
+//                            item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
+//                    ))
+//                    .collect(Collectors.toList());
+//        } catch (Exception e) {
+//            return Collections.emptyList();
+//        }
+//    }
+//
+//    // 2. 채널 썸네일 가져오기
+//    @Cacheable(value = "channelThumbnails", key = "#channelId") // API 요청횟수 넘많아서 캐싱적용
+//    public String getChannelThumbnail(String channelId) {
+//        String url = "https://www.googleapis.com/youtube/v3/channels"
+//                + "?part=snippet"
+//                + "&id=" + channelId
+//                + "&key=" + apiKey;
+//
+//        try {
+//            YouTubeChannelResponse response = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+//            return response.getItems().get(0).getSnippet().getThumbnails().getDefaultThumbnail().getUrl();
+//        } catch (Exception e) {
+//            return "https://example.com/default_thumbnail.jpg"; // 기본 썸네일 URL
+//        }
+//    }
 
     // ===== YouTube API 응답 DTO =====
 
@@ -127,6 +196,7 @@ public class YouTubeService {
 
         @Data
         public static class Item {
+            private String id;
             private Snippet snippet;
 
             @Data
