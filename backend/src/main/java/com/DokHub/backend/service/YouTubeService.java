@@ -19,9 +19,9 @@ public class YouTubeService {
     private String apiKey;
     private final RestTemplate restTemplate;
 
-    public YouTubeService(RestTemplate restTemplate, @Value("${youtube.api.key:}") String apiKey) {
+    public YouTubeService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.apiKey = apiKey;
+        this.apiKey = System.getenv("YOUTUBE_API_KEY");
 
         // 개발환경시 사용
 //        // .env 파일 경로 명시적 지정
