@@ -34,7 +34,7 @@
           <!-- 썸네일 -->
           <div class="col-4 col-md-3">
             <img
-              :src="channel.thumbnailUrl || require('@/assets/doksame3.gif')"
+              :src="channel.thumbnailUrl && channel.thumbnailUrl.trim() !== '' ? channel.thumbnailUrl : require('@/assets/doksame3.gif')"
               class="img-fluid rounded-start"
               alt="video preview"
             />
@@ -118,7 +118,6 @@ export default {
   props: ["selectedTab"],
   data() {
     return {
-      selectedTab: "clip", // 기본값 설정
       allChannels: [],
       loading: true,
       page: 0,
