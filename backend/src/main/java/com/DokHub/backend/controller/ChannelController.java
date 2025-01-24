@@ -2,6 +2,10 @@ package com.DokHub.backend.controller;
 
 import com.DokHub.backend.dto.ChannelDto;
 import com.DokHub.backend.service.ChannelService;
+import jakarta.annotation.Resource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -72,4 +76,13 @@ public class ChannelController {
     public int getMainCount() {
         return channelService.getTotalCount("main");
     }
+
+    @GetMapping("/default_thumbnail.jpg")
+    public ResponseEntity<Resource> getDefaultThumbnail() {
+        Resource resource = (Resource) new ClassPathResource("static/default_thumbnail.jpg");
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(resource);
+    }
+
 }
