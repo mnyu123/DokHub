@@ -118,6 +118,7 @@ export default {
   props: ["selectedTab"],
   data() {
     return {
+      selectedTab: "clip", // 기본값 설정
       allChannels: [],
       loading: true,
       page: 0,
