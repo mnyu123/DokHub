@@ -26,63 +26,19 @@ public class ChannelController {
         return "Dokhub 404 notnot found";
     }
 
-    // =============================================================
-    // 1) clip 전용
-    // =============================================================
-    @GetMapping("/clip")
-    public List<ChannelDto> getClipChannels(
+    // 2025.1.25 변경된 효율적 컨트롤러
+    @GetMapping("/{category}")
+    public List<ChannelDto> getChannels(
+            @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "7") int size
     ) {
-        // Service에서 category="clip" 으로 페이징
-        return channelService.getChannelsPaged("clip", page, size);
+        return channelService.getChannelsPaged(category, page, size);
     }
 
-    @GetMapping("/clip/totalCount")
-    public int getClipCount() {
-        return channelService.getTotalCount("clip");
-    }
-
-    // =============================================================
-    // 2) song 전용
-    // =============================================================
-    @GetMapping("/song")
-    public List<ChannelDto> getSongChannels(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "7") int size
-    ) {
-        // Service에서 category="song"
-        return channelService.getChannelsPaged("song", page, size);
-    }
-
-    @GetMapping("/song/totalCount")
-    public int getSongCount() {
-        return channelService.getTotalCount("song");
-    }
-
-    // =============================================================
-    // 3) main 전용
-    // =============================================================
-    @GetMapping("/main")
-    public List<ChannelDto> getMainChannels(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "7") int size
-    ) {
-        // Service에서 category="main"
-        return channelService.getChannelsPaged("main", page, size);
-    }
-
-    @GetMapping("/main/totalCount")
-    public int getMainCount() {
-        return channelService.getTotalCount("main");
-    }
-
-    @GetMapping("/default_thumbnail.jpg")
-    public ResponseEntity<Resource> getDefaultThumbnail() {
-        Resource resource = (Resource) new ClassPathResource("static/default_thumbnail.jpg");
-        return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG)
-                .body(resource);
+    @GetMapping("/{category}/totalCount")
+    public int getTotalCount(@PathVariable String category) {
+        return channelService.getTotalCount(category);
     }
 
 }
