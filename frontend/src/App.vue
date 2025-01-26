@@ -90,36 +90,36 @@
 </template>
 
 <script>
-import FooterComponent from '@/components/FooterComponent.vue' // 푸터 import
-import ChannelList from './components/ChannelList.vue' // 채널목록 Springboot에서 가져온거 내용
+import FooterComponent from "@/components/FooterComponent.vue";
+import ChannelList from "./components/ChannelList.vue";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
     FooterComponent,
-    ChannelList
+    ChannelList,
   },
   data() {
     return {
-      selectedTab: 'clip',
-      theme: 'dark' // 기본 라이트 모드 -> 다크모드로 변경
-    }
+      selectedTab: "clip",
+      theme: localStorage.getItem("theme") || "dark", // 초기값 복원
+    };
   },
   computed: {
     themeClass() {
-      // 다크일 때 배경 검정 + 글씨 흰색 / 라이트면 흰색 + 검정글씨
-      return this.theme === 'dark' ? 'bg-dark text-white' : 'bg-white'
+      return this.theme === "dark" ? "bg-dark text-white" : "bg-white";
     },
     headerClass() {
-      return this.theme === 'dark' ? 'bg-secondary' : 'bg-light'
-    }
+      return this.theme === "dark" ? "bg-secondary" : "bg-light";
+    },
   },
   methods: {
     toggleTheme() {
-      this.theme = (this.theme === 'light') ? 'dark' : 'light'
-    }
-  }
-}
+      this.theme = this.theme === "dark" ? "light" : "dark";
+      localStorage.setItem("theme", this.theme); // 테마 상태 저장
+    },
+  },
+};
 </script>
 
 <style>

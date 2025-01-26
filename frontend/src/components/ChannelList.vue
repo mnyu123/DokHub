@@ -112,6 +112,7 @@
 
 <script>
 import axios from "axios";
+import { API_BASE_URL } from "@/config"; // API URL 분리
 
 export default {
   name: "ChannelList",
@@ -123,12 +124,11 @@ export default {
       page: 0,
       size: 7,
       totalCount: 0,
-      sortBy: "latest", // 정렬 기준 추가
-      channelCache: {}, // 페이지별 캐시 추가
+      sortBy: "latest",
+      channelCache: {}, // 메모리 캐시
     };
   },
   computed: {
-    // 정렬된 채널 목록
     sortedChannels() {
       return [...this.allChannels].sort((a, b) => {
         if (this.sortBy === "latest") {
@@ -140,97 +140,58 @@ export default {
         }
       });
     },
-    tabTitle() {
-      if (this.selectedTab === "clip") return "클립 채널";
-      if (this.selectedTab === "song") return "노래 채널";
-      if (this.selectedTab === "main") return "본채널";
-      return "채널 목록";
-    },
     maxPage() {
       return Math.ceil(this.totalCount / this.size);
-    }
+    },
   },
   watch: {
-    async selectedTab() {
-      this.page = 0;
-      await this.fetchTotalCount();
-      this.fetchChannels();
-    },
+    selectedTab: "fetchTotalCount",
     sortBy() {
-      if (this.allChannels.length > 0) {
-        this.allChannels = [...this.allChannels]; // 트리거 업데이트
-      }
-    }
+      this.allChannels = [...this.allChannels];
+    },
   },
   async mounted() {
     await this.fetchTotalCount();
-    this.fetchChannels();
+    await this.fetchChannels();
   },
   methods: {
     async fetchTotalCount() {
       try {
-        let url = "";
-        if (this.selectedTab === "clip") {
-          // http://localhost:8080
-          // https://dokhub-backend2.fly.dev/api/channels/clip/totalCount
-          url = "https://dokhub-backend2.fly.dev/api/channels/clip/totalCount";
-        } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/song/totalCount";
-        } else {
-          url = "https://dokhub-backend2.fly.dev/api/channels/main/totalCount";
-        }
+        const url = `${API_BASE_URL}/channels/${this.selectedTab}/totalCount`;
         const response = await axios.get(url);
         this.totalCount = response.data;
       } catch (error) {
-        console.error(error);
+        console.error("Failed to fetch total count:", error);
       }
     },
     async fetchChannels() {
-      const category = this.selectedTab;
-      const page = this.page;
+      const cacheKey = `channels_${this.selectedTab}_page_${this.page}`;
+      const cachedData = JSON.parse(localStorage.getItem(cacheKey));
+      const cacheTimestamp = localStorage.getItem(`${cacheKey}_timestamp`);
+      const isCacheValid =
+        cacheTimestamp &&
+        Date.now() - new Date(cacheTimestamp).getTime() < 3600000;
 
-      // === localStorage 캐싱 로직 추가 ===
-      // fetchChannels 메서드 내에 추가
-      const cachedData = localStorage.getItem(`channels_${category}_page_${page}`);
-      if (cachedData) {
-        this.allChannels = JSON.parse(cachedData);
-        this.loading = false;
-      return;
-      }
-      // ==============================
-
-      // 이미 메모리 캐시에 있는지 확인
-      if (this.channelCache[page]) {
-        this.allChannels = this.channelCache[page];
+      if (cachedData && isCacheValid) {
+        this.allChannels = cachedData;
         this.loading = false;
         return;
       }
 
       try {
         this.loading = true;
-        let url = "";
-        if (this.selectedTab === "clip") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/clip";
-        } else if (this.selectedTab === "song") {
-          url = "https://dokhub-backend2.fly.dev/api/channels/song";
-        } else {
-          url = "https://dokhub-backend2.fly.dev/api/channels/main";
-        }
+        const url = `${API_BASE_URL}/channels/${this.selectedTab}`;
         const response = await axios.get(url, {
           params: { page: this.page, size: this.size },
         });
 
-         // === localStorage 캐싱 로직 추가 ===
-        // 데이터 로드 후 캐시에 저장
-        localStorage.setItem(`channels_${category}_page_${page}`, JSON.stringify(response.data));
-        // ==============================
-
-        // 메모리 캐시에 저장
-        this.channelCache[page] = response.data;
         this.allChannels = response.data;
+        this.channelCache[this.page] = response.data;
 
+        localStorage.setItem(cacheKey, JSON.stringify(response.data));
+        localStorage.setItem(`${cacheKey}_timestamp`, new Date().toISOString());
       } catch (error) {
-        console.error(error);
+        console.error("Failed to fetch channels:", error);
       } finally {
         this.loading = false;
       }
@@ -246,8 +207,8 @@ export default {
         this.page++;
         this.fetchChannels();
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
