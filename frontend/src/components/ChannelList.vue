@@ -157,7 +157,7 @@ export default {
   methods: {
     async fetchTotalCount() {
       try {
-        const url = `${API_BASE_URL}/channels/${this.selectedTab}/totalCount`;
+        const url = `http://52.79.242.58:8080/api/channels/${this.selectedTab}/totalCount`;
         const response = await axios.get(url);
         this.totalCount = response.data;
       } catch (error) {
@@ -180,7 +180,7 @@ export default {
 
       try {
         this.loading = true;
-        const url = `${API_BASE_URL}/channels/${this.selectedTab}`;
+        const url = `http://52.79.242.58:8080/api/channels/${this.selectedTab}`;
         const response = await axios.get(url, {
           params: { page: this.page, size: this.size },
         });
