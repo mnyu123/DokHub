@@ -70,13 +70,10 @@
             class="img-fluid"
           />
           <div class="update-box mt-3 p-3 text-white bg-secondary rounded">
-            <h2>v0.4 업데이트 내역</h2>
+            <h2>v0.5 업데이트 내역</h2>
             <ul>
-              <li>신규 키리누키 추가</li>
-              <li>본채널 추가</li>
-              <li>채널이름 최신순,이름순 정렬</li>
-              <li>채널별 최신영상 3개 조회</li>
-              <li>움짤바꾼건 귀여워서 넣었습니다.[진지]</li>
+              <li>v0.4 페이지 고장 교체</li>
+              <li>유튜브 정보 확인 가능하도록 변경</li>
             </ul>
           </div>
         </div>
