@@ -1,5 +1,5 @@
 [[redirects]]
 from = "/api/*"
-to = "http://dokhub-1135265453.ap-northeast-2.elb.amazonaws.com/api/:splat"
+to = "http://52.79.242.58:8080/api/:splat"
 status = 200
 force = true
