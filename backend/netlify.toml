@@ -1,0 +1,5 @@
+[[redirects]]
+from = "/api/*"
+to = "http://dokhub-1135265453.ap-northeast-2.elb.amazonaws.com/api/:splat"
+status = 200
+force = true
