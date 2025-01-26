@@ -15,7 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://127.0.0.1:3000",  // ← 혹은 127.0.0.1 if needed
                         "https://dokhub-love-doksaem.netlify.app",
                         "https://deploy-preview-9--dokhub-love-doksaem.netlify.app",
-                        "https://dokhub-backend2.fly.dev",
+                        "http://52.79.242.58", // AWS 주소 추가
                         "https://www.googleapis.com"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
