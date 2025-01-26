@@ -112,7 +112,6 @@
 
 <script>
 import axios from "axios";
-import { API_BASE_URL } from "@/config"; // API URL 분리
 
 export default {
   name: "ChannelList",
