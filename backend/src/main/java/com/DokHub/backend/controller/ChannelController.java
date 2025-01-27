@@ -2,9 +2,6 @@ package com.DokHub.backend.controller;
 
 import com.DokHub.backend.dto.ChannelDto;
 import com.DokHub.backend.service.ChannelService;
-import jakarta.annotation.Resource;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +36,33 @@ public class ChannelController {
     @GetMapping("/{category}/totalCount")
     public int getTotalCount(@PathVariable String category) {
         return channelService.getTotalCount(category);
+    }
+
+    /**
+     * ^^^ 캐시를 전체 갱신(무효화) 시키는 엔드포인트
+     */
+    @PostMapping("/refreshCache")
+    public ResponseEntity<String> refreshCache() {
+        channelService.forceRefreshAllCache();
+        return ResponseEntity.ok("[DOKHUB] : 전체 캐시를 갱신했습니다.");
+    }
+
+    /**
+     * ^^^ 특정 채널의 비디오 캐시를 비워주는 엔드포인트
+     */
+    @PostMapping("/clearRecentVideosCache/{channelId}")
+    public ResponseEntity<String> clearRecentVideosCache(@PathVariable String channelId) {
+        channelService.forceClearChannelCache(channelId);
+        return ResponseEntity.ok("[DOKHUB] : 채널 ID (" + channelId + ")의 최근 비디오 캐시를 비웠습니다.");
+    }
+
+    /**
+     * ^^^ 특정 채널들의 썸네일 캐시를 비워주는 엔드포인트
+     */
+    @PostMapping("/clearThumbnailsCache")
+    public ResponseEntity<String> clearThumbnailsCache(@RequestBody List<String> channelIds) {
+        channelService.forceClearThumbnailsCache(channelIds);
+        return ResponseEntity.ok("[DOKHUB] : 채널 ID 목록 " + channelIds + "의 썸네일 캐시를 비웠습니다.");
     }
 
 }
