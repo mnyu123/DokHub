@@ -10,23 +10,30 @@
 
     <!-- 데이터 표시 -->
     <div v-else>
-      <!-- 정렬 버튼 추가 -->
-      <nav class="mb-3 d-flex justify-content-end">
-        <button 
-          class="btn btn-outline-secondary me-2" 
-          @click="sortBy = 'latest'"
-          :class="{ 'btn-primary': sortBy === 'latest' }"
-        >
+      <!-- 정렬 및 총 클립개수 표시 -->
+      <nav class="mb-3 d-flex justify-content-between align-items-center">
+      <!-- 왼쪽: 총 클립 개수 표시 -->
+        <div class="fw-bold">
+          총 클립개수 : {{ totalCount }}
+        </div>
+      <!-- 오른쪽: 정렬 버튼 -->
+        <div>
+          <button 
+            class="btn btn-outline-secondary me-2" 
+            @click="sortBy = 'latest'"
+            :class="{ 'btn-primary': sortBy === 'latest' }"
+          >
           최신순
-        </button>
-        <button 
-          class="btn btn-outline-secondary" 
-          @click="sortBy = 'name'"
-          :class="{ 'btn-primary': sortBy === 'name' }"
-        >
-          이름순
-        </button>
-      </nav>
+          </button>
+    <button 
+      class="btn btn-outline-secondary" 
+      @click="sortBy = 'name'"
+      :class="{ 'btn-primary': sortBy === 'name' }"
+    >
+      이름순
+    </button>
+  </div>
+</nav>
 
       <!-- 채널 리스트 -->
       <div class="card mb-3" v-for="(channel, idx) in sortedChannels" :key="idx">
@@ -157,6 +164,7 @@ export default {
     async fetchTotalCount() {
       try {
         const url = `/api/channels/${this.selectedTab}/totalCount`;
+        // const url = `http://localhost:8080/api/channels/${this.selectedTab}/totalCount`;
         const response = await axios.get(url);
         this.totalCount = response.data;
       } catch (error) {
@@ -180,6 +188,7 @@ export default {
       try {
         this.loading = true;
         const url = `/api/channels/${this.selectedTab}`;
+        // const url = `http://localhost:8080/api/channels/${this.selectedTab}`;
         const response = await axios.get(url, {
           params: { page: this.page, size: this.size },
         });
