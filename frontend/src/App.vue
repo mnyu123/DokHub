@@ -12,7 +12,7 @@
           class="img-fluid me-3"
         />
         <!-- 텍스트 (독 허 브) -->
-        <h1 class="m-0" style="font-size: 1.5rem;">독 허 브</h1>
+        <h1 class="m-0" style="font-size: 1.5rem;">독 허 브 - 유튜브에 있는 모든 독쌤 키리누키 영상을 한번에!</h1>
       </div>
 
       <!-- 라이트 / 다크 모드 전환 버튼 -->
