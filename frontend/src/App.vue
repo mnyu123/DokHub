@@ -6,7 +6,7 @@
       <!-- 로고와 텍스트 -->
       <div class="d-flex align-items-center">
         <img
-          src="@/assets/doksaem.png"
+          src="@/assets/doksaem6.png"
           alt="독쌤 캐릭터"
           style="max-height: 80px;"
           class="img-fluid me-3 logo-anim"
@@ -29,7 +29,7 @@
         <!-- 좌측 GIF -->
         <div class="col-12 col-md-2 text-center mb-3 mb-md-0">
           <img
-            src="@/assets/newleft.gif"
+            src="@/assets/right.gif"
             alt="좌측GIF"
             class="img-fluid left-gif"
           />
@@ -54,7 +54,7 @@
         <!-- 우측 GIF와 업데이트 박스 -->
         <div class="col-12 col-md-2 text-center mt-3 mt-md-0">
           <img
-            src="@/assets/right.gif"
+            src="@/assets/chzzkleft.gif"
             alt="우측GIF"
             class="img-fluid right-gif"
           />
@@ -64,6 +64,8 @@
               <li>페이지 애니메이션 추가</li>
               <li>오타 수정</li>
               <li>페이지 넘김후 상단 고정</li>
+              <li>움짤 교체</li>
+              <li>치지직 채널 링크 추가</li>
             </ul>
           </div>
         </div>

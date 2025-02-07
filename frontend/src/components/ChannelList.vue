@@ -77,7 +77,7 @@
                       class="text-decoration-none"
                     >
                       <img
-                        :src="video.thumbnailUrl || require('@/assets/dok22.gif')"
+                        :src="video.thumbnailUrl || require('@/assets/doksame3.gif')"
                         class="img-thumbnail video-thumbnail"
                         :alt="video.videoTitle"
                       />
