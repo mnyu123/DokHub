@@ -61,11 +61,10 @@
           <div class="update-box mt-3 p-3">
             <h2 class="update-title">v0.6 업데이트 내역</h2>
             <ul class="update-list">
-              <li>페이지 애니메이션 추가</li>
-              <li>오타 수정</li>
+              <li>화면 애니메이션 추가</li>
+              <li>오타 수정 / 움짤 교체</li>
               <li>페이지 넘김후 상단 고정</li>
-              <li>움짤 교체</li>
-              <li>치지직 채널 링크 추가</li>
+              <li>채널 개수 표시</li>
             </ul>
           </div>
         </div>
