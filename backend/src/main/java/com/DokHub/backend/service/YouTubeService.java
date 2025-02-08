@@ -125,6 +125,7 @@ public class YouTubeService {
                     item.getSnippet().getTitle(),
                     LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
                     item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
+                    // item.getSnippet().getThumbnails().getHighThumbnail().getUrl() // 고화질 썸네일 적용
             )).collect(Collectors.toList());
         } catch (Exception e) {
             return Collections.emptyList();
