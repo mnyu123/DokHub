@@ -65,6 +65,10 @@
               본채널
             </button>
           </nav>
+
+          <!-- 여기서 LiveStatus 컴포넌트 추가 -->
+          <LiveStatus />
+
           <ChannelList :selectedTab="selectedTab" :key="selectedTab" />
         </div>
 
@@ -94,12 +98,14 @@
 </template>
 
 <script>
+import LiveStatus from "@/components/LiveStatus.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
 import ChannelList from "./components/ChannelList.vue";
 
 export default {
   name: "App",
   components: {
+    LiveStatus,
     FooterComponent,
     ChannelList,
   },
