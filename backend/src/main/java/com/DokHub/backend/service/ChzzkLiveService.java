@@ -1,73 +1,90 @@
 package com.DokHub.backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.*;
-
+@Slf4j
 @Service
 public class ChzzkLiveService {
 
-    private final RestTemplate restTemplate;
-    private final String clientId;
-    private final String clientSecret;
-    private final String baseUrl = "https://openapi.chzzk.naver.com";
+    // CHZZK 라이브 목록 조회 API 기본 URL
+    private static final String BASE_CHZZK_API_URL = "https://openapi.chzzk.naver.com/open/v1/lives";
+    // 체크할 대상 채널 ID
+    private static final String TARGET_CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
 
-    // 독케익 채널 ID (치지직 API에서 방송키로 사용)
-    private final String channelId = "b68af124ae2f1743a1dcbf5e2ab41e0b";
+    // application.properties에 정의된 값 주입
+    @Value("${chzzk.client.id}")
+    private String clientId;
 
-    public ChzzkLiveService(RestTemplate restTemplate,
-                            @Value("${chzzk.client.id}") String clientId,
-                            @Value("${chzzk.client.secret}") String clientSecret) {
-        this.restTemplate = restTemplate;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-    }
+    @Value("${chzzk.client.secret}")
+    private String clientSecret;
 
-    /**
-     * 라이브 방송 설정 조회 (GET /open/v1/lives/setting)
-     */
-    public Map<String, Object> getLiveSettings() {
-        String url = baseUrl + "/open/v1/lives/setting?channelId=" + channelId;
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Client-Id", clientId);
-        headers.set("Client-Secret", clientSecret);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
+    @Value("${chzzk.access.token}")
+    private String accessToken;
 
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
-        return response.getBody();
-    }
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 라이브 방송 설정 변경 (PATCH /open/v1/lives/setting)
+     * CHZZK API를 호출하여 전체 라이브 목록을 순회하면서
+     * 대상 채널이 현재 방송 중인지 체크합니다.
      *
-     * @param liveOn true면 방송 켜기(라이브 on), false면 방송 끄기(오프)로 설정
+     * @return 대상 채널이 라이브이면 true, 아니면 false
      */
-    public Map<String, Object> updateLiveSettings(boolean liveOn) {
-        String url = baseUrl + "/open/v1/lives/setting?channelId=" + channelId;
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Client-Id", clientId);
-        headers.set("Client-Secret", clientSecret);
-        headers.setContentType(MediaType.APPLICATION_JSON);
+    public boolean isChannelLive() {
+        try {
+            // 요청 헤더에 Client 인증 정보 추가
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Client-Id", clientId);
+            headers.add("Client-Secret", clientSecret);
+            // 방송 조회는 토큰 사용 안함
+            HttpEntity<?> entity = new HttpEntity<>(headers);
 
-        Map<String, Object> requestBody = new HashMap<>();
-        if (liveOn) {
-            // 라이브 on: 방송 제목과 설정값을 지정
-            requestBody.put("defaultLiveTitle", "독케익 방송 중");
-            requestBody.put("categoryType", "GAME");  // 예시 값
-            requestBody.put("categoryId", "game123");   // 예시 값
-            requestBody.put("tags", Arrays.asList("독케익", "라이브"));
-        } else {
-            // 라이브 off: 방송 제목을 '방송 종료'로 업데이트 (빈 값은 허용되지 않으므로)
-            requestBody.put("defaultLiveTitle", "방송 종료");
-            // 필요에 따라 태그나 카테고리도 초기화 가능
-            requestBody.put("tags", new ArrayList<>());
+            String nextToken = null;
+            do {
+                // URL을 수동으로 구성하여 next 값을 그대로 전달합니다.
+                String apiUrl = BASE_CHZZK_API_URL + "?size=20";
+                if (nextToken != null && !nextToken.isEmpty()) {
+                    apiUrl += "&next=" + nextToken;
+                }
+                log.info("[DOKHUB]: 치지직 API 호출 링크: {}", apiUrl);
+
+                // CHZZK API 호출
+                ResponseEntity<String> responseEntity = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+                String response = responseEntity.getBody();
+                log.info("[DOKHUB]: 치지직 API 호출 응답 받음");
+
+                // 응답 JSON 파싱
+                JsonNode root = objectMapper.readTree(response);
+                JsonNode content = root.path("content");
+                JsonNode data = content.path("data");
+                if (data.isArray()) {
+                    for (JsonNode item : data) {
+                        String channelId = item.path("channelId").asText();
+                        log.info("[DOKHUB]: 채널 ID 체크: {}", channelId);
+                        if (TARGET_CHANNEL_ID.equals(channelId)) {
+                            log.info("[DOKHUB]: 타겟 채널 {} 는 현재 라이브중", TARGET_CHANNEL_ID);
+                            return true;
+                        }
+                    }
+                }
+                // 다음 페이지의 next 값 확인 (API에서 제공한 값을 그대로 사용)
+                JsonNode page = content.path("page");
+                nextToken = page.path("next").asText(null);
+                if (nextToken == null || nextToken.isEmpty()) {
+                    log.info("[DOKHUB]: 더 이상 페이지 없음");
+                    break;
+                }
+            } while (true);
+            log.info("[DOKHUB]: 타겟 채널 {} 방송 안킴", TARGET_CHANNEL_ID);
+        } catch (Exception e) {
+            log.error("[DOKHUB]: 방송 상태 불러오는데 에러남", e);
         }
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.PATCH, entity, Map.class);
-        return response.getBody();
+        return false;
     }
 }
