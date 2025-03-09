@@ -29,11 +29,13 @@
       <div class="row">
         <!-- 좌측 GIF -->
         <div class="col-12 col-md-2 text-center mb-3 mb-md-0">
-          <img
-            src="@/assets/right.gif"
-            alt="좌측GIF"
-            class="img-fluid left-gif"
-          />
+          <a href="https://chzzk.naver.com/b68af124ae2f1743a1dcbf5e2ab41e0b" target="_blank">
+            <img
+              src="@/assets/right.gif"
+              alt="좌측GIF"
+              class="img-fluid left-gif"
+            />
+          </a>
         </div>
 
         <!-- 중앙 콘텐츠 (ChannelList 컴포넌트) -->
@@ -85,7 +87,7 @@
               <li>아이콘 변경</li>
               <li>아이콘 클릭시 독허브 사이트 이동</li>
               <li>카테고리 변경 (클립(활성화), 클립(중단), 리플레이, 노래, 본채널)</li>
-              <li>독쌤 방송 ON/OFF</li>
+              <li>독쌤 방송중인지 확인 가능</li>
             </ul>
           </div>
         </div>
