@@ -161,8 +161,8 @@ export default {
   methods: {
     async fetchTotalCount() {
       try {
-        const url = `/api/channels/${this.selectedTab}/totalCount`;
-        // const url = `http://localhost:8080/api/channels/${this.selectedTab}/totalCount`;
+        // const url = `/api/channels/${this.selectedTab}/totalCount`;
+        const url = `http://localhost:8080/api/channels/${this.selectedTab}/totalCount`;
         const response = await axios.get(url);
         this.totalCount = response.data;
       } catch (error) {
@@ -185,8 +185,8 @@ export default {
 
       try {
         this.loading = true;
-        const url = `/api/channels/${this.selectedTab}`;
-        // const url = `http://localhost:8080/api/channels/${this.selectedTab}`;
+        // const url = `/api/channels/${this.selectedTab}`;
+        const url = `http://localhost:8080/api/channels/${this.selectedTab}`;
         const response = await axios.get(url, {
           params: { page: this.page, size: this.size },
         });
