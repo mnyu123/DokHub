@@ -5,7 +5,7 @@
     <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center', 'justify-content-between', 'header-anim']">
       <!-- 로고와 텍스트를 감싸는 링크: 클릭 시 외부 링크로 이동 -->
       <!-- 실제 배포전에는 https://dokhub-love-doksaem.netlify.app/ 로 변경해서 나갈것.  -->
-      <a href="http://localhost:3000" class="d-flex align-items-center text-decoration-none">
+      <a href="https://dokhub-love-doksaem.netlify.app/" class="d-flex align-items-center text-decoration-none">
         <img
           src="@/assets/dokhublogo.png"
           alt="독허브 로고"
