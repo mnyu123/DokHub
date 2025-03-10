@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -23,9 +24,6 @@ public class ChzzkLiveService {
 
     @Value("${chzzk.client.secret}")
     private String clientSecret;
-
-    @Value("${chzzk.access.token}")
-    private String accessToken;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -54,8 +52,20 @@ public class ChzzkLiveService {
                 }
                 log.info("[DOKHUB]: 치지직 API 호출 링크: {}", apiUrl);
 
-                // CHZZK API 호출
-                ResponseEntity<String> responseEntity = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+                ResponseEntity<String> responseEntity;
+                try {
+                    responseEntity = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+                } catch (HttpClientErrorException e) {
+                    // 400 에러 중 "잘못된 next 값입니다." 메시지가 포함되면 더 이상 페이지가 없다고 판단
+                    if (e.getStatusCode() == HttpStatus.BAD_REQUEST &&
+                            e.getResponseBodyAsString().contains("잘못된 next 값입니다")) {
+                        log.info("[DOKHUB]: 더 이상 페이지 없음");
+                        break;
+                    } else {
+                        throw e;
+                    }
+                }
+
                 String response = responseEntity.getBody();
                 log.info("[DOKHUB]: 치지직 API 호출 응답 받음");
 
