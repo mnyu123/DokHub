@@ -1,10 +1,10 @@
 <template>
-  <!-- 최상위 div에 themeClass 적용 -->
   <div id="app" :class="themeClass">
-    <!-- 헤더: 애니메이션 효과와 부드러운 전환 -->
+    <!-- 팝업 컴포넌트: 페이지 로드 시 오버레이 팝업으로 표시 -->
+    <CelebrationPopup />
+
+    <!-- 기존 헤더 영역 -->
     <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center', 'justify-content-between', 'header-anim']">
-      <!-- 로고와 텍스트를 감싸는 링크: 클릭 시 외부 링크로 이동 -->
-      <!-- 실제 배포전에는 https://dokhub-love-doksaem.netlify.app/ 로 변경해서 나갈것.  -->
       <a href="https://dokhub-love-doksaem.netlify.app/" class="d-flex align-items-center text-decoration-none">
         <img
           src="@/assets/dokhublogo.png"
@@ -12,19 +12,17 @@
           style="max-height: 80px;"
           class="img-fluid me-3 logo-anim"
         />
-        <!-- 제목과 부제목 분리 -->
         <div class="header-text">
           <h1 class="main-title m-0">독 허 브</h1>
           <p class="sub-title m-0">- 개떡이들을 위한 독케익 모아보기 사이트</p>
         </div>
       </a>
-      <!-- 테마 전환 버튼 -->
       <button class="btn theme-btn" @click="toggleTheme">
         {{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}
       </button>
     </header>
 
-    <!-- 좌/중앙/우 레이아웃 -->
+    <!-- 기존 컨텐츠 영역 -->
     <div class="container">
       <div class="row">
         <!-- 좌측 GIF -->
@@ -38,7 +36,7 @@
           </a>
         </div>
 
-        <!-- 중앙 콘텐츠 (ChannelList 컴포넌트) -->
+        <!-- 중앙 콘텐츠 (채널 리스트 등) -->
         <div class="col-12 col-md-8">
           <nav class="mb-3 d-flex justify-content-center align-items-center tab-nav">
             <button class="tab-btn me-2" 
@@ -67,14 +65,11 @@
               본채널
             </button>
           </nav>
-
-          <!-- 여기서 LiveStatus 컴포넌트 추가 -->
           <LiveStatus />
-
           <ChannelList :selectedTab="selectedTab" :key="selectedTab" />
         </div>
 
-        <!-- 우측 GIF와 업데이트 박스 -->
+        <!-- 우측 GIF 및 업데이트 박스 -->
         <div class="col-12 col-md-2 text-center mt-3 mt-md-0">
           <img
             src="@/assets/bigcake.gif"
@@ -94,38 +89,36 @@
       </div>
     </div>
 
-    <!-- 푸터 (다크 모드 여부 prop 전달) -->
+    <!-- 기존 푸터 영역 -->
     <FooterComponent :isDark="theme === 'dark'" />
   </div>
 </template>
 
 <script>
 import LiveStatus from "@/components/LiveStatus.vue";
+import ChannelList from "@/components/ChannelList.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
-import ChannelList from "./components/ChannelList.vue";
+import CelebrationPopup from "@/components/CelebrationPopup.vue";
 
 export default {
   name: "App",
   components: {
     LiveStatus,
-    FooterComponent,
     ChannelList,
+    FooterComponent,
+    CelebrationPopup,
   },
   data() {
     return {
-      // 기본 선택 카테고리는 클립(활성화)
       selectedTab: "clip",
-      // 로컬 스토리지에서 테마 복원, 기본은 다크 모드
       theme: localStorage.getItem("theme") || "dark",
     };
   },
   computed: {
     themeClass() {
-      // 다크/라이트 테마에 따른 전체 배경 클래스
       return this.theme === "dark" ? "bg-dark text-white" : "bg-light text-dark";
     },
     headerClass() {
-      // 헤더 배경을 다크 모드일 때 옅은 검은색으로 지정
       return this.theme === "dark" ? "custom-header-dark" : "bg-light";
     },
   },
@@ -139,7 +132,7 @@ export default {
 </script>
 
 <style>
-/* (기존 스타일 코드 그대로 유지) */
+/* 전역 스타일 (기존 App.vue 스타일 유지) */
 body, html {
   margin: 0;
   padding: 0;
