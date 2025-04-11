@@ -1,10 +1,12 @@
 package com.DokHub.backend.controller;
 
+import com.DokHub.backend.service.ChzzkChatService;
 import com.DokHub.backend.service.ChzzkLiveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -12,6 +14,9 @@ public class ChzzkLiveController {
 
     @Autowired
     private ChzzkLiveService chzzkLiveService;
+
+    @Autowired
+    private ChzzkChatService chzzkChatService;
 
     @GetMapping("/api/live/status")
     public Map<String, String> getLiveStatus() {
@@ -24,5 +29,10 @@ public class ChzzkLiveController {
     public String getChatPageInfo() {
         // 독채팅 관련 데이터나 간단한 메시지를 반환
         return "독채팅 페이지에 오신 것을 환영합니다.";
+    }
+
+    @GetMapping("/api/chat/history")
+    public List<String> getChatHistory() {
+        return chzzkChatService.getChatHistory();
     }
 }
