@@ -1,24 +1,24 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from '@/components/HomePage.vue';  // 위에서 생성한 HomePage
-import ChatPage from '@/components/ChatPage.vue';  // 독채팅 페이지, 필요에 따라 생성
+import HomePage from '@/components/HomePage.vue';
+import ChatPage from '@/components/ChatPage.vue';
 
 const routes = [
-    {
-      path: '/',
-      name: 'HomePage',
-      component: HomePage,
-    },
-    {
-      path: '/api/chat/dokchat',
-      name: 'ChatPage',
-      component: ChatPage,
-    },
-  ];
-  
-  const router = createRouter({
-    history: createWebHistory(),
-    routes,
-  });
-  
-  export default router;
+  {
+    path: '/',
+    name: 'HomePage',
+    component: HomePage,
+  },
+  {
+    // 프론트엔드 전용 독채팅 페이지 경로
+    path: '/chat/dokchat',
+    name: 'ChatPage',
+    component: ChatPage,
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+export default router;
