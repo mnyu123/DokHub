@@ -1,7 +1,6 @@
 <template>
   <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center', 'justify-content-between']">
-    <a href="http://localhost:3000/" class="d-flex align-items-center text-decoration-none">
-      <!-- 배포 시 주소는 변경 -->
+    <a href="/" class="d-flex align-items-center text-decoration-none">
       <img
         src="@/assets/dokhublogo.png"
         alt="독허브 로고"
@@ -14,9 +13,8 @@
       </div>
     </a>
     <div class="header-buttons">
-      <!-- 독채팅 버튼 -->
+      <!-- 독채팅 버튼 경로 변경 -->
       <button class="btn chat-btn" @click="goToChat">독채팅</button>
-      <!-- 테마 전환 버튼 -->
       <button class="btn theme-btn" @click="$emit('toggle-theme')">
         {{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}
       </button>
@@ -25,7 +23,7 @@
 </template>
 
 <script>
-import router from '@/router'; // router 인스턴스 직접 임포트
+import router from '@/router'; 
 export default {
   name: "HeaderComponent",
   props: {
@@ -40,17 +38,17 @@ export default {
     },
   },
   methods: {
-    goToChat() {
-      // 지정한 경로로 이동
-      router.push('/api/chat/dokchat');
-    },
+  goToChat() {
+    // 프론트엔드 라우터 경로로 이동
+    router.push('/chat/dokchat');
   },
+},
 };
 </script>
 
 <style scoped>
 .custom-header-dark {
-  background-color: #141414; /* dark 모드 배경색 */
+  background-color: #141414;
 }
 .header-text {
   display: flex;
@@ -81,8 +79,6 @@ export default {
 .chat-btn:hover {
   text-decoration: underline;
 }
-
-/* 로고 애니메이션 (유지) */
 .logo-anim {
   animation: fadeIn 1s ease-in-out;
 }
