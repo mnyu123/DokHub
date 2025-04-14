@@ -1,22 +1,17 @@
 package com.DokHub.backend.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.socket.client.IO;
-import io.socket.client.Socket;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import xyz.r2turntrue.chzzk4j.ChzzkClient;
+import xyz.r2turntrue.chzzk4j.ChzzkClientBuilder;
+import xyz.r2turntrue.chzzk4j.chat.ChatMessage;
+import xyz.r2turntrue.chzzk4j.chat.ChzzkChat;
+import xyz.r2turntrue.chzzk4j.chat.ChzzkChatBuilder;
+import xyz.r2turntrue.chzzk4j.chat.event.ChatMessageEvent;
+import xyz.r2turntrue.chzzk4j.chat.event.ConnectEvent;
 
-import java.net.URISyntaxException;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -24,220 +19,77 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class ChzzkChatService {
 
-    @Value("${chzzk.base-url}")
-    private String baseUrl;                  // ex) https://api.chzzk.naver.com
-
-    @Value("${chzzk.access-token}")
-    private String accessToken;              // Bearer {token}
-
-    @Value("${chzzk.channel-id}")
-    private String channelId;                // 수신하려는 채널(독케익)
-
-    @Value("${chzzk.target-user-id}")
-    private String targetUserChannelId;      // 필터 대상 유저(일단 나)
-
-    @Value("${chzzk.client-id}")     // 치지직 인증1
-    private String clientId;
-
-    @Value("${chzzk.client-secret}") // 치지직 인증2
-    private String clientSecret;
-
-
-    private final ObjectMapper om = new ObjectMapper();
-    private final RestTemplate rest = new RestTemplate();
+    // 실제 API 클라이언트 정보와 채널, 대상 사용자 정보로 수정하세요.
+    private static final String API_CLIENT_ID = "fee1a177-b7ca-449c-a7ea-890966f3f27a";
+    private static final String API_SECRET = "X087qpF8mx8udhwT1OWt8GtulCCPOLAqUyzTnxpI6dk"; // 임시 하드코딩
+    private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b"; // 독케익 방송 (생방일 때만 가능)
+    // 대상 사용자를 고유 ID로 필터할 수도 있으나, 여기서는 닉네임 "쇼츠유입"으로 필터합니다.
+    private static final String TARGET_USER_NICKNAME = "쇼츠유입";
 
     /**
-     * 최근 채팅 500개만 유지
+     * -- GETTER --
+     *  수집된 특정 유저(쇼츠유입 님)의 채팅 내역을 반환합니다.
+     *
+     * @return 채팅 메시지 문자열의 리스트
      */
+    // 채팅 메시지를 저장할 스레드 안전한 리스트
     @Getter
     private final List<String> chatHistory = new CopyOnWriteArrayList<>();
 
-    private Socket socket;
+    private final ChzzkClient client;
+    private final ChzzkChat chat;
 
-    /* --------------------------------------------------------------------- */
-    /* 1) 애플리케이션 기동 시 세션 만들고 소켓 연결                        */
-    /* --------------------------------------------------------------------- */
-    @PostConstruct
-    @Async        // 별도 스레드에서 비동기로 실행
-    public void start() {
+    public ChzzkChatService() {
+        // API 클라이언트 생성 (필요하다면 withDebugMode() 등 추가 설정 가능)
+        client = new ChzzkClientBuilder(API_CLIENT_ID, API_SECRET)
+                // .withDebugMode() // 디버그 로그 활성화가 필요하면 주석 해제하세요.
+                .build();
+
+        // OpenAPI 인증이나 로그인 어댑터 설정이 필요하다면 아래 예시처럼 사용할 수 있습니다.
+        // ChzzkSimpleUserLoginAdapter adapter = new ChzzkSimpleUserLoginAdapter("Access Token", null);
+        // client = new ChzzkClientBuilder(API_CLIENT_ID, API_SECRET)
+        //         .withLoginAdapter(adapter)
+        //         .build();
+        // client.loginAsync().join();
+
+        // 채팅 연결을 위한 인스턴스 생성 (채널 ID 필요)
         try {
-            /* 1‑1. 세션 URL 요청 (유저 인증) */
-            String sessionUrl = fetchSessionUrl();
-            log.info("[CHZZK] 세션 URL 수신: {}", sessionUrl);
-
-            /* 1‑2. Socket.IO 연결 */
-            IO.Options opt = new IO.Options();
-            opt.reconnection = false;              // 자동 재연결 비활성
-            opt.forceNew = true;                // 항상 새 연결
-            opt.timeout = 3_000;               // 연결 타임아웃(ms)
-            opt.transports = new String[]{"websocket"};  // WebSocket 전용
-
-            socket = IO.socket(sessionUrl, opt);
-
-            socket.on(Socket.EVENT_CONNECT, args ->
-                    log.info("[CHZZK] 소켓 연결 완료"));
-
-            socket.on(Socket.EVENT_CONNECT_ERROR, args ->
-                    log.error("[CHZZK] CONNECT_ERROR : {}", Arrays.toString(args)));
-
-            socket.on(Socket.EVENT_DISCONNECT, args ->
-                    log.warn("[CHZZK] DISCONNECT : {}", Arrays.toString(args)));
-
-            /* 시스템 이벤트 수신 (connected / subscribed 등) */
-            socket.on("SYSTEM", args -> {
-                JsonNode node = toJson(args[0]);
-                handleSystemEvent(node);
-            });
-
-            /* 채팅 이벤트 수신 */
-            socket.on("CHAT", args -> {
-                JsonNode node = toJson(args[0]);
-                handleChatEvent(node);
-            });
-
-            socket.connect();
-        } catch (URISyntaxException e) {
-            log.error("[CHZZK] 소켓 URL 오류", e);
-        } catch (Exception e) {
-            log.error("[CHZZK] 초기화 실패", e);
+            chat = new ChzzkChatBuilder(client, CHANNEL_ID).build();
+        } catch (IOException e) {
+            throw new RuntimeException("[DOKHUB] : ChzzkChat 생성에 실패하였습니다.", e);
         }
-    }
 
-    /* --------------------------------------------------------------------- */
-    /* SYSTEM 이벤트 처리                                                    */
-    /* --------------------------------------------------------------------- */
-    private void handleSystemEvent(JsonNode node) {
-        String type = node.path("type").asText();
-        if ("connected".equals(type)) {
-            String sessionKey = node.path("data").path("sessionKey").asText();
-            log.info("[CHZZK] 세션 키 수신: {}", sessionKey);
-            subscribeChat(sessionKey);
-        } else {
-            log.debug("[CHZZK] SYSTEM 이벤트: {}", node.toPrettyString());
-        }
-    }
-
-    /* --------------------------------------------------------------------- */
-    /* CHAT 이벤트 처리                                                      */
-    /* --------------------------------------------------------------------- */
-    private void handleChatEvent(JsonNode node) {
-        try {
-            /* 채널/유저 필터링 */
-            String senderId = node.path("senderChannelId").asText();
-            String chId = node.path("channelId").asText();
-            if (!channelId.equals(chId) || !targetUserChannelId.equals(senderId)) {
-                return; // 관심 없는 메시지
+        // 채팅 연결 이벤트 핸들러 등록
+        chat.on(ConnectEvent.class, evt -> {
+            log.info("[DOKHUB] : 채팅 서버에 연결되었습니다! (재연결 여부: {})", evt.isReconnecting());
+            if (!evt.isReconnecting()) {
+                // 재연결이 아닐 경우 최근 채팅 50개 요청
+                chat.requestRecentChat(50);
             }
+        });
 
-            /* 메시지 JSON 문자열 그대로 보관 */
-            String json = om.writeValueAsString(node);
-            chatHistory.add(json);
+        // 채팅 메시지 이벤트 핸들러 등록 – 모든 수신 메시지를 로그로 출력하고,
+        // 대상 사용자인 "쇼츠유입" 님의 메시지일 때만 chatHistory에 추가
+        chat.on(ChatMessageEvent.class, evt -> {
+            ChatMessage msg = evt.getMessage();
 
-            /* 리스트 크기 유지(500개 초과 시 앞에서 제거) */
-            if (chatHistory.size() > 500) {
-                chatHistory.remove(0);
+            if (msg.getProfile() != null) {
+                String nickname = msg.getProfile().getNickname();
+                log.info("[DOKHUB] : {} 님으로부터 메시지 수신됨, RoleCode: {}",
+                        nickname,
+                        msg.getProfile().getUserRoleCode());
+                if (TARGET_USER_NICKNAME.equals(nickname)) {
+                    chatHistory.add(msg.getContent());
+                    log.info("[DOKHUB] : {} 님의 메시지를 채팅 기록에 추가함: {}",
+                            nickname, msg.getContent());
+                }
+            } else {
+                log.info("[DOKHUB] : 익명 메시지 수신: {}", msg.getContent());
             }
+        });
 
-            log.info("[CHZZK] {} → {}", senderId, node.path("content").asText());
-        } catch (Exception e) {
-            log.error("[CHZZK] CHAT 파싱 오류", e);
-        }
+        // 채팅 서버에 비동기로 연결 시작
+        chat.connectAsync();
     }
 
-
-    // ─── 교체 후 : Client 세션 전용 ─────────────────────────────
-    private String fetchClientSessionUrl() {
-        HttpHeaders h = new HttpHeaders();
-        h.setContentType(MediaType.APPLICATION_JSON);
-        h.set("Client-Id", clientId);
-        h.set("Client-Secret", clientSecret);
-
-        HttpEntity<Void> req = new HttpEntity<>(h);
-        String url = baseUrl + "/open/v1/sessions/auth/client";
-
-        ResponseEntity<JsonNode> res =
-                rest.exchange(url, HttpMethod.GET, req, JsonNode.class);
-
-        String sessionUrl = res.getBody().path("content").path("url").asText();
-        if (sessionUrl.isBlank()) {
-            throw new IllegalStateException("세션 URL 파싱 실패 : " + res.getBody());
-        }
-        return sessionUrl;
-    }
-
-
-
-    // 세션 전용임 - 구버전
-    /* --------------------------------------------------------------------- */
-    /* REST API: 세션 URL, 구독 요청                                          */
-    /* --------------------------------------------------------------------- */
-    private String fetchSessionUrl() {
-        HttpHeaders h = new HttpHeaders();
-        h.setBearerAuth(accessToken);
-        HttpEntity<Void> req = new HttpEntity<>(h);
-
-        String url = baseUrl + "/open/v1/sessions/auth";
-        ResponseEntity<JsonNode> res =
-                rest.exchange(url, HttpMethod.GET, req, JsonNode.class);
-
-        JsonNode body = res.getBody();
-        if (body == null) {
-            throw new IllegalStateException("[CHZZK] 세션 응답이 null");
-        }
-
-        String sessionUrl = body.path("content").path("url").asText();  // ← 핵심 수정
-        if (sessionUrl.isBlank()) {
-            log.error("[CHZZK] 세션 URL 파싱 실패 → 전체 응답: {}", body.toPrettyString());
-            throw new IllegalStateException("세션 URL 파싱 실패");
-        }
-        return sessionUrl;
-    }
-
-
-    private void subscribeChat(String sessionKey) {
-        String url = baseUrl + "/open/v1/sessions/events/subscribe/chat?sessionKey=" + sessionKey;
-
-        HttpHeaders h = new HttpHeaders();
-        h.setBearerAuth(accessToken);
-        h.setContentType(MediaType.APPLICATION_JSON);
-
-        /* CHZZK는 Body가 없어도 되지만, 빈 JSON 전송 */
-        HttpEntity<String> req = new HttpEntity<>("{}", h);
-
-        try {
-            rest.exchange(url, HttpMethod.POST, req, Void.class);
-            log.info("[CHZZK] 채팅 구독 요청 완료 (sessionKey={})", sessionKey);
-        } catch (Exception e) {
-            log.error("[CHZZK] 채팅 구독 실패", e);
-        }
-    }
-
-    /* --------------------------------------------------------------------- */
-    /* 수동 종료용 (테스트/재시작 시)                                        */
-    /* --------------------------------------------------------------------- */
-    public void stop() {
-        if (socket != null && socket.connected()) {
-            socket.disconnect();
-            socket.close();
-            log.info("[CHZZK] 소켓 연결 종료");
-        }
-    }
-
-    /* ---------------- 공통 JSON 파싱 헬퍼 ---------------- */
-    private JsonNode toJson(Object arg) {
-        try {
-            if (arg == null) return om.nullNode();
-            if (arg instanceof String s) {           // 문자열
-                return om.readTree(s);
-            }
-            if (arg instanceof org.json.JSONObject jo) { // JSONObject
-                return om.readTree(jo.toString());
-            }
-            // 그 밖의 Map, List 등도 모두 Tree 로 변환
-            return om.valueToTree(arg);
-        } catch (Exception e) {
-            log.error("[CHZZK] JSON 파싱 실패 : {}", arg, e);
-            return om.nullNode();
-        }
-    }
 }
