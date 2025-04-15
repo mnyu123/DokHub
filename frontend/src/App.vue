@@ -98,7 +98,6 @@
 import LiveStatus from "@/components/LiveStatus.vue";
 import ChannelList from "@/components/ChannelList.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
-import CelebrationPopup from "@/components/CelebrationPopup.vue";
 
 export default {
   name: "App",
@@ -106,7 +105,6 @@ export default {
     LiveStatus,
     ChannelList,
     FooterComponent,
-    CelebrationPopup,
   },
   data() {
     return {
