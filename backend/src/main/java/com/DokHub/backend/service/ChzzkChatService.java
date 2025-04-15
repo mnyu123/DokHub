@@ -27,8 +27,8 @@ public class ChzzkChatService {
     @Value("${chzzk.client.secret}")
     private String apiSecret;
 
-    private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b"; // 독케익 방송 (생방일 때만 가능)
-    private static final String TARGET_USER_NICKNAME = "쇼츠유입"; // 대상 사용자의 닉네임
+    private static final String CHANNEL_ID = "4de764d9dad3b25602284be6db3ac647"; // 테스트용 채널
+    private static final String TARGET_USER_NICKNAME = "쇼츠유입"; // 필터 대상 사용자의 닉네임
 
     /**
      * -- GETTER --
@@ -46,7 +46,7 @@ public class ChzzkChatService {
     public void init() {
         // API 클라이언트 생성 (필요하다면 withDebugMode() 등 추가 설정 가능)
         client = new ChzzkClientBuilder(apiClientId, apiSecret)
-                // .withDebugMode() // 디버그 로그 활성화가 필요하면 주석 해제하세요.
+                // .withDebugMode() // 필요시 활성화
                 .build();
 
         // 채팅 연결을 위한 인스턴스 생성 (채널 ID 필요)
@@ -69,13 +69,11 @@ public class ChzzkChatService {
         // 대상 사용자인 "쇼츠유입" 님의 메시지일 때만 chatHistory에 추가
         chat.on(ChatMessageEvent.class, evt -> {
             ChatMessage msg = evt.getMessage();
-
             if (msg.getProfile() != null) {
                 String nickname = msg.getProfile().getNickname();
-                // 개발단계에서만 활성화 , 운영에서는 삭제
-                log.info("[DOKHUB] : {} 님으로부터 메시지 수신됨, RoleCode: {}",
-                        nickname,
-                        msg.getProfile().getUserRoleCode());
+//                log.info("[DOKHUB] : {} 님으로부터 메시지 수신됨, RoleCode: {}",
+//                        nickname,
+//                        msg.getProfile().getUserRoleCode());
                 if (TARGET_USER_NICKNAME.equals(nickname)) {
                     chatHistory.add(msg.getContent());
                     log.info("[DOKHUB] : {} 님의 메시지를 채팅 기록에 추가함: {}",
@@ -87,6 +85,7 @@ public class ChzzkChatService {
         });
 
         // 채팅 서버에 비동기로 연결 시작
+        log.info("[DOKHUB] : 채팅 서버 연결 시도 중...");
         chat.connectAsync();
     }
 }
