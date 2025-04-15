@@ -1,7 +1,7 @@
 <!-- 우측 사이드바(움짤,업데이트 내역 박스) -->
 <template>
     <div class="text-center mt-3 mt-md-0">
-      <img src="@/assets/bigcake.gif" alt="우측GIF" class="img-fluid right-gif" />
+      <img src="@/assets/new_right.png" alt="우측GIF" class="img-fluid right-gif" />
       <UpdateBox />
     </div>
   </template>

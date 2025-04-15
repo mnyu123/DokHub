@@ -2,7 +2,7 @@
 <template>
     <div class="text-center mb-3 mb-md-0">
       <a href="https://chzzk.naver.com/b68af124ae2f1743a1dcbf5e2ab41e0b" target="_blank">
-        <img src="@/assets/right.gif" alt="좌측GIF" class="img-fluid left-gif" />
+        <img src="@/assets/dokchzzk.png" alt="좌측GIF" class="img-fluid left-gif" />
       </a>
     </div>
   </template>

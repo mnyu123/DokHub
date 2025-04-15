@@ -14,7 +14,7 @@
     </a>
     <div class="header-buttons">
       <!-- 독채팅 버튼 경로 변경 -->
-      <button class="btn chat-btn" @click="goToChat">독채팅</button>
+      <button class="btn chat-btn" @click="goToChat">독채팅(Beta)</button>
       <button class="btn theme-btn" @click="$emit('toggle-theme')">
         {{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}
       </button>
