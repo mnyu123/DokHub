@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import router from './router';
 
 // Vuetify 관련 패키지 임포트 (Vuetify 3)
 import { createVuetify } from 'vuetify';
@@ -24,4 +25,5 @@ const vuetify = createVuetify({
 // createApp() 결과를 app 변수에 할당한 후, vuetify 플러그인을 등록하고 마운트합니다.
 const app = createApp(App);
 app.use(vuetify);
+app.use(router);
 app.mount('#app');

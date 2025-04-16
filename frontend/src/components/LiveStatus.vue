@@ -7,7 +7,7 @@
     <div v-else>
       <p>{{ liveStatusText }}</p>
       <p v-if="liveOn" class="extra-info">
-        춤추는 독쌤을 클릭하면 채널로 이동합니다.
+        왼쪽 아이콘을 누르시면 채널로 이동합니다.
       </p>
     </div>
   </div>
