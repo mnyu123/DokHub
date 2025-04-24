@@ -13,10 +13,14 @@ import xyz.r2turntrue.chzzk4j.chat.ChzzkChat;
 import xyz.r2turntrue.chzzk4j.chat.ChzzkChatBuilder;
 import xyz.r2turntrue.chzzk4j.chat.event.ChatMessageEvent;
 import xyz.r2turntrue.chzzk4j.chat.event.ConnectEvent;
+import xyz.r2turntrue.chzzk4j.chat.event.ConnectionClosedEvent;   // ⬅️ **추가**
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;                             // ⬅️ **추가**
+import java.util.concurrent.ScheduledExecutorService;             // ⬅️ **추가**
+import java.util.concurrent.TimeUnit;                             // ⬅️ **추가**
 
 @Slf4j
 @Service
@@ -50,7 +54,11 @@ public class ChzzkChatService {
     private final List<String> chatHistory = new CopyOnWriteArrayList<>();
 
     private ChzzkClient client;
-    private ChzzkChat chat;
+    private ChzzkChat   chat;
+
+    /* ────────────────────────────── 재연결용 스케줄러 ───────────────────────────── */
+    private final ScheduledExecutorService scheduler =
+            Executors.newSingleThreadScheduledExecutor();                // ⬅️ **추가**
 
     @PostConstruct
     public void init() {
@@ -74,7 +82,9 @@ public class ChzzkChatService {
             throw new RuntimeException("[DOKHUB] : ChzzkChat 생성에 실패하였습니다.", e);
         }
 
-        // 채팅 연결 이벤트 핸들러 등록
+        /* ─────────────────────── 이벤트 핸들러 등록 ─────────────────────── */
+
+        // 1) 연결
         chat.on(ConnectEvent.class, evt -> {
             log.info("[DOKHUB] : 채팅 서버에 연결되었습니다! (재연결 여부: {})", evt.isReconnecting());
             if (!evt.isReconnecting()) {
@@ -83,14 +93,12 @@ public class ChzzkChatService {
             }
         });
 
-        // 채팅 메시지 이벤트 핸들러 등록 – 대상 사용자인 "쇼츠유입" 님의 메시지만 chatHistory에 추가
+        // 2) 메시지 – 대상 사용자의 채팅만 저장
         chat.on(ChatMessageEvent.class, evt -> {
             ChatMessage msg = evt.getMessage();
             if (msg.getProfile() != null) {
                 String nickname = msg.getProfile().getNickname();
-                // 개발에만 체크할때 쓰고 , 운영에서는 로그가 너무 낭비됨
-//                log.info("[DOKHUB] : {} 님으로부터 메시지 수신됨, RoleCode: {}",
-//                        nickname, msg.getProfile().getUserRoleCode());
+//              log.info("[DOKHUB] : {} 님으로부터 메시지 수신됨", nickname);
                 if (TARGET_USER_NICKNAME.equals(nickname)) {
                     chatHistory.add(msg.getContent());
                     log.info("[DOKHUB] : {} 님의 메시지를 채팅 기록에 추가함: {}",
@@ -101,7 +109,19 @@ public class ChzzkChatService {
             }
         });
 
-        // 채팅 서버에 비동기로 연결 시작
+        // 3) 종료(끊김) – 자동 재연결                       ⬅️ **추가**
+        chat.on(ConnectionClosedEvent.class, evt -> {
+            log.warn("[DOKHUB] : 채팅 소켓 종료 – code:{} reason:{}",
+                    evt.getCode(), evt.getReason());
+            /* 4003 = 19세 이상 방송일때(쿠키 필요) */
+            long delaySec = (evt.getCode() == 4003) ? 1 : 5;
+            scheduler.schedule(() -> {
+                log.info("[DOKHUB] : {}초 후 채팅 서버 재연결 시도", delaySec);
+                chat.connectAsync();    // 기존 인스턴스 재사용
+            }, delaySec, TimeUnit.SECONDS);
+        });
+
+        /* ─────────────────────── 연결 시작 ─────────────────────── */
         log.info("[DOKHUB] : 채팅 서버 연결 시도 중...");
         chat.connectAsync();
     }
