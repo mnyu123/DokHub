@@ -36,9 +36,9 @@ public class ChzzkChatService {
     private String nidSes;
 
     // 테스트용 채널 ID (필요에 따라 변경)
-    private static final String CHANNEL_ID = "d7ddd7585a271e55159ae47c0ce9a9dd";
+    private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
     // 필터 대상 사용자의 닉네임 (테스트 : 쇼츠유입(나) , 실제 : 독케익(대상 스트리머))
-    private static final String TARGET_USER_NICKNAME = "쇼츠유입";
+    private static final String TARGET_USER_NICKNAME = "독케익";
 
     /**
      * -- GETTER --
