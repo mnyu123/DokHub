@@ -76,7 +76,8 @@ public class ChzzkLiveService {
                 if (data.isArray()) {
                     for (JsonNode item : data) {
                         String channelId = item.path("channelId").asText();
-                        log.info("[DOKHUB]: 채널 ID 체크: {}", channelId);
+                        // 2025-05-04 서버에 로그가 너무많아서 주석
+                        // log.info("[DOKHUB]: 채널 ID 체크: {}", channelId);
                         if (TARGET_CHANNEL_ID.equals(channelId)) {
                             log.info("[DOKHUB]: 타겟 채널 {} 는 현재 라이브중", TARGET_CHANNEL_ID);
                             return true;
