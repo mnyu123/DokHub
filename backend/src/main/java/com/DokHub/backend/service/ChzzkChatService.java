@@ -29,8 +29,8 @@ public class ChzzkChatService {
     @Value("${chzzk.nid.ses}")       private String nidSes;
 
     /** 모니터링 대상 채널 ID·닉네임 */
-    private static final String CHANNEL_ID = "d7ddd7585a271e55159ae47c0ce9a9dd";
-    private static final String TARGET_USER_NICKNAME = "쇼츠유입";
+    private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
+    private static final String TARGET_USER_NICKNAME = "독케익";
 
     /** 최근 채팅 내역 – Thread‑safe */
     @Getter
