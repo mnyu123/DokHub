@@ -31,9 +31,7 @@ public class ChzzkChatService {
 
     private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
     private static final String TARGET_USER_NICKNAME = "독케익";
-
     private static final String TARGET_USER_TEST = "쇼츠유입";
-
     private static final String TARGET_USER_TESTNAME = "테스트용 수집";
 
     @Getter
@@ -71,7 +69,7 @@ public class ChzzkChatService {
             registerEventHandlers(chat);
 
         } catch (IOException e) {
-            throw new RuntimeException("ChzzkChat 생성 실패", e);
+            throw new RuntimeException("[DOKHUB] : ChzzkChat 생성 실패", e);
         }
     }
 
@@ -80,19 +78,24 @@ public class ChzzkChatService {
 
         /* 연결 */
         c.on(ConnectEvent.class, evt -> {
-            log.info("[DOKHUB] 채팅 소켓 연결 (재연결? {})", evt.isReconnecting());
-            if (!evt.isReconnecting()) {
-                c.requestRecentChat(50);
-            }
+            log.info("[DOKHUB] 채팅 소켓 연결 | 최근 채팅 50개 요청 (재연결 여부 확인 : {})", evt.isReconnecting());
+            /* 재연결 여부와 관계없이 매번 50개 요청 */
+            c.requestRecentChat(50);
         });
 
         /* 메시지 */
         c.on(ChatMessageEvent.class, evt -> {
             ChatMessage msg = evt.getMessage();
             if (msg.getProfile() == null) return;
+            // 독케익 채팅 전용 루트
             if (TARGET_USER_NICKNAME.equals(msg.getProfile().getNickname())) {
-                chatHistory.add(msg.getContent());
-                log.info("[CHAT] {}: {}", TARGET_USER_NICKNAME, msg.getContent());
+                String text = msg.getContent();
+                if (!chatHistory.contains(text)) {          // ← 중복이면 채팅 스킵(왠만하면 그럴일 없긴한데)
+                    chatHistory.add(text);
+                    log.info("[CHAT] {}: {}", TARGET_USER_NICKNAME, text);
+                } else {
+                    log.info("[DOKHUB] : 독케익 채팅이 중복됐음....");
+                }
             }
             // 테스트용 수집
             if (TARGET_USER_TEST.equals(msg.getProfile().getNickname())) {
