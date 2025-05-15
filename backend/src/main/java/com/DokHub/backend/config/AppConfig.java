@@ -1,6 +1,5 @@
 package com.DokHub.backend.config;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,11 +14,7 @@ public class AppConfig {
 
     @PostConstruct
     public void testEnvVariables() {
-        Dotenv dotenv = Dotenv.configure()
-                .ignoreIfMissing()   // ← 핵심
-                .load();
-
-        System.out.println("YouTube API Key: " + System.getenv("YOUTUBE_API_KEY"));
-        System.out.println("MySQL Password: " + System.getenv("MYSQL_ROOT"));
+        System.out.println("[유튜브 키 환경변수 안씀]: " + System.getenv("YOUTUBE_API_KEY"));
+        System.out.println("[DB비번 환경변수 안씀]: " + System.getenv("MYSQL_ROOT"));
     }
 }
