@@ -12,13 +12,3 @@
     name: "LeftSidebar",
   };
   </script>
-  
-  <style scoped>
-  .left-gif {
-    transition: transform 0.3s ease;
-  }
-  .left-gif:hover {
-    transform: scale(1.05);
-  }
-  </style>
-  

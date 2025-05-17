@@ -1,299 +1,144 @@
 <template>
   <div>
-    <!-- 로딩 스피너 -->
-    <div v-if="loading" class="text-center my-5 spinner-container">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p>채널 목록을 불러오는 중입니다...</p>
+    <!-- 로딩 -->
+    <div v-if="loading" class="flex flex-col items-center my-10">
+      <span class="loading loading-spinner loading-lg"></span>
+      <p class="mt-4">채널 목록을 불러오는 중입니다…</p>
     </div>
 
-    <!-- 데이터 표시 -->
+    <!-- 내용 -->
     <div v-else>
-      <!-- 정렬 및 총 클립 개수 표시 -->
-      <nav class="mb-3 d-flex justify-content-between align-items-center sort-nav">
-        <div class="fw-bold">
-          총 채널 개수 : {{ totalCount }}
-        </div>
-        <div>
-          <!-- 기본 부트스트랩 btn 클래스를 제거하고 커스텀 클래스(sort-btn)만 적용 -->
-          <button 
-            class="sort-btn me-2"
-            @click="sortBy = 'latest'"
-            :class="{ active: sortBy === 'latest' }"
-          >
+      <!-- 상단: 총 개수 + 정렬 -->
+      <div class="flex justify-between items-center mb-4">
+        <p class="font-bold">총 채널 개수 : {{ totalCount }}</p>
+
+        <div class="join">
+          <button class="btn join-item"
+                  :class="sortBy==='latest' && 'btn-primary'"
+                  @click="sortBy='latest'">
             최신순
           </button>
-          <button 
-            class="sort-btn"
-            @click="sortBy = 'name'"
-            :class="{ active: sortBy === 'name' }"
-          >
+          <button class="btn join-item"
+                  :class="sortBy==='name' && 'btn-primary'"
+                  @click="sortBy='name'">
             이름순
           </button>
         </div>
-      </nav>
+      </div>
 
-      <!-- 채널 리스트 -->
-      <div class="channel-card card mb-3" v-for="(channel, idx) in sortedChannels" :key="idx">
-        <div class="row g-0">
-          <!-- 썸네일 -->
-          <div class="col-4 col-md-3">
-            <img
-              :src="channel.thumbnailUrl && channel.thumbnailUrl.trim() !== '' ? channel.thumbnailUrl : require('@/assets/doksame3.gif')"
-              class="img-fluid rounded-start channel-thumbnail"
-              alt="video preview"
-            />
-          </div>
+      <!-- 채널 카드 -->
+      <div v-for="(c,idx) in sortedChannels" :key="idx"
+           class="card lg:card-side bg-base-100 shadow-xl mb-6 animate-fadeIn">
+        <!-- 썸네일 -->
+        <figure class="basis-1/3">
+          <img :src="c.thumbnailUrl?.trim() || placeholder"
+               class="img-fixed rounded-l-xl">
+        </figure>
 
-          <!-- 채널 정보 -->
-          <div class="col-8 col-md-9">
-            <div class="card-body">
-              <h5 class="card-title">{{ channel.channelName }}</h5>
-              <a
-                class="channel-link"
-                :href="channel.channelLink"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                채널 바로가기
+        <!-- 정보 -->
+        <div class="card-body basis-2/3">
+          <h2 class="card-title">{{ c.channelName }}</h2>
+          <a :href="c.channelLink" target="_blank" class="link link-primary">
+            채널 바로가기
+          </a>
+
+          <!-- 최신 영상 -->
+          <div class="mt-2">
+            <h3 class="font-semibold mb-1">최신 영상</h3>
+            <div v-if="!c.recentVideos?.length" class="text-sm opacity-60">
+              없음
+            </div>
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <a v-for="v in c.recentVideos" :key="v.videoId"
+                 :href="`https://youtu.be/${v.videoId}`" target="_blank">
+                <img :src="v.thumbnailUrl || placeholder"
+                     class="img-fixed rounded">
+                <p class="text-xs mt-1 truncate">{{ v.videoTitle }}</p>
               </a>
-
-              <!-- 최신 영상 섹션 -->
-              <div class="mt-3">
-                <h6>최신 영상</h6>
-                <div v-if="!channel.recentVideos || channel.recentVideos.length === 0" class="text-muted">
-                  최신 영상 정보가 없습니다.
-                </div>
-                <div class="row" v-else>
-                  <div 
-                    class="col-6 col-md-4 mb-2 video-card"
-                    v-for="(video, index) in channel.recentVideos" 
-                    :key="index"
-                  >
-                    <a 
-                      :href="`https://youtu.be/${video.videoId}`" 
-                      target="_blank"
-                      class="text-decoration-none"
-                    >
-                      <img
-                        :src="video.thumbnailUrl || require('@/assets/doksame3.gif')"
-                        class="img-thumbnail video-thumbnail"
-                        :alt="video.videoTitle"
-                      />
-                      <p class="small text-muted mt-1 text-truncate">
-                        {{ video.videoTitle }}
-                      </p>
-                    </a>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 페이징 버튼 -->
-      <div class="d-flex justify-content-center align-items-center mt-4">
-        <button 
-          class="page-btn me-3" 
-          @click="prevPage" 
-          :disabled="page <= 0"
-        >
-          이전
-        </button>
-        <span>Page {{ page + 1 }} / {{ maxPage }}</span>
-        <button 
-          class="page-btn ms-3" 
-          @click="nextPage" 
-          :disabled="page >= maxPage - 1"
-        >
-          다음
-        </button>
+      <!-- 페이지네이션 -->
+      <div class="flex justify-center items-center gap-4 my-8">
+        <button class="btn" @click="prevPage" :disabled="page<=0">이전</button>
+        <span>{{ page+1 }} / {{ maxPage }}</span>
+        <button class="btn" @click="nextPage" :disabled="page>=maxPage-1">다음</button>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import axios from "axios";
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue';
+import axios from 'axios';
 
-export default {
-  name: "ChannelList",
-  props: ["selectedTab"],
-  data() {
-    return {
-      allChannels: [],
-      loading: true,
-      page: 0,
-      size: 7,
-      totalCount: 0,
-      sortBy: "latest",
-      channelCache: {},
-    };
-  },
-  computed: {
-    sortedChannels() {
-      return [...this.allChannels].sort((a, b) => {
-        if (this.sortBy === "latest") {
-          const aDate = a.recentVideos[0]?.publishedAt || 0;
-          const bDate = b.recentVideos[0]?.publishedAt || 0;
-          return new Date(bDate) - new Date(aDate);
-        } else {
-          return a.channelName.localeCompare(b.channelName);
-        }
-      });
-    },
-    maxPage() {
-      return Math.ceil(this.totalCount / this.size);
-    },
-  },
-  watch: {
-    selectedTab: "fetchTotalCount",
-    sortBy() {
-      this.allChannels = [...this.allChannels];
-    },
-  },
-  async mounted() {
-    await this.fetchTotalCount();
-    await this.fetchChannels();
-  },
-  methods: {
-    async fetchTotalCount() {
-      try {
-        const url = `/api/channels/${this.selectedTab}/totalCount`;
-        // const url = `http://localhost:8080/api/channels/${this.selectedTab}/totalCount`;
-        const response = await axios.get(url);
-        this.totalCount = response.data;
-      } catch (error) {
-        console.error("Failed to fetch total count:", error);
-      }
-    },
-    async fetchChannels() {
-      const cacheKey = `channels_${this.selectedTab}_page_${this.page}`;
-      const cachedData = JSON.parse(localStorage.getItem(cacheKey));
-      const cacheTimestamp = localStorage.getItem(`${cacheKey}_timestamp`);
-      const isCacheValid =
-        cacheTimestamp &&
-        Date.now() - new Date(cacheTimestamp).getTime() < 3600000;
+const props = defineProps({ selectedTab: String });
 
-      if (cachedData && isCacheValid) {
-        this.allChannels = cachedData;
-        this.loading = false;
-        return;
-      }
+/* ─────────────── data ─────────────── */
+const allChannels = ref([]);
+const loading     = ref(true);
+const page        = ref(0);
+const size        = 7;
+const totalCount  = ref(0);
+const sortBy      = ref('latest');
+const placeholder = require('@/assets/doksame3.gif');
 
-      try {
-        this.loading = true;
-        const url = `/api/channels/${this.selectedTab}`;
-        // const url = `http://localhost:8080/api/channels/${this.selectedTab}`;
-        const response = await axios.get(url, {
-          params: { page: this.page, size: this.size },
-        });
-        this.allChannels = response.data;
-        this.channelCache[this.page] = response.data;
-        localStorage.setItem(cacheKey, JSON.stringify(response.data));
-        localStorage.setItem(`${cacheKey}_timestamp`, new Date().toISOString());
-      } catch (error) {
-        console.error("Failed to fetch channels:", error);
-      } finally {
-        this.loading = false;
-      }
-    },
-    async prevPage() {
-      if (this.page > 0) {
-        this.page--;
-        await this.fetchChannels();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    },
-    async nextPage() {
-      if (this.page < this.maxPage - 1) {
-        this.page++;
-        await this.fetchChannels();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    },
-  },
-};
+/* ─────────── reactive watch ─────────── */
+watch(
+   () => props.selectedTab,
+   async () => {
+     page.value = 0;          // 탭 바뀌면 1페이지부터
+     await fetchTotalCount(); // 총 개수 다시
+     await fetchChannels();   // **목록 다시 로드**
+   }
+);
+watch(sortBy,          () => { allChannels.value = [...allChannels.value]; });
+
+/* ───────────── lifecycle ───────────── */
+onMounted(async () => {
+  await fetchTotalCount();
+  await fetchChannels();
+});
+
+/* ────────────── computed ───────────── */
+const sortedChannels = computed(() => [...allChannels.value].sort((a,b) => {
+  if (sortBy.value === 'latest') {
+    return new Date(b.recentVideos?.[0]?.publishedAt || 0) -
+           new Date(a.recentVideos?.[0]?.publishedAt || 0);
+  }
+  return a.channelName.localeCompare(b.channelName);
+}));
+const maxPage = computed(() => Math.ceil(totalCount.value / size));
+
+/* ─────────────── methods ───────────── */
+async function fetchTotalCount() {
+  try {
+    /* 배포용: Netlify 프록시(또는 nginx) → 같은 도메인 */
+    // const { data } = await axios.get(`/api/channels/${props.selectedTab}/totalCount`);
+    // 로컬 테스트용: 주석 해제 후 사용
+    const { data } = await axios.get(`http://localhost:8080/api/channels/${props.selectedTab}/totalCount`);
+    
+    totalCount.value = data;
+  } catch (e) { console.error(e); }
+}
+
+async function fetchChannels() {
+  loading.value = true;
+  try {
+    /* 배포용 */
+    // const { data } = await axios.get(`/api/channels/${props.selectedTab}`,
+    //                                  { params: { page: page.value, size }});
+    // 로컬 테스트용
+    const { data } = await axios.get(`http://localhost:8080/api/channels/${props.selectedTab}`,{ params: { page: page.value, size }});
+    
+    allChannels.value = data;
+  } catch (e) { console.error(e); }
+  finally      { loading.value = false; }
+}
+
+async function prevPage(){ if(page.value>0){ page.value--; await fetchChannels(); scrollTop(); } }
+async function nextPage(){ if(page.value<maxPage.value-1){ page.value++; await fetchChannels(); scrollTop(); } }
+function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
 </script>
-
-<style scoped>
-/* 로딩 스피너 페이드인 효과 */
-.spinner-container {
-  animation: fadeIn 1s ease-in;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 채널 카드 애니메이션 및 호버 효과 */
-.channel-card {
-  animation: cardFadeIn 0.5s ease-in-out;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.channel-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-}
-@keyframes cardFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 채널 썸네일 호버 효과 */
-.channel-thumbnail {
-  transition: transform 0.3s ease;
-}
-.channel-thumbnail:hover {
-  transform: scale(1.05);
-}
-
-/* 정렬 버튼 커스텀 스타일 */
-.sort-nav .sort-btn {
-  padding: 8px 16px;
-  border: none;
-  background-color: transparent;
-  color: inherit;
-  font-weight: bold;
-  border-radius: 4px;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-}
-.sort-nav .sort-btn:hover {
-  background-color: rgba(13, 110, 253, 0.2);
-  transform: scale(1.05);
-}
-.sort-nav .sort-btn.active {
-  background-color: #0d6efd;
-  color: white;
-  transform: scale(1.05);
-}
-
-/* 페이징 버튼 커스텀 스타일 */
-.page-btn {
-  padding: 10px 20px;
-  border: none;
-  background-color: #0d6efd;
-  color: #fff;
-  border-radius: 4px;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  cursor: pointer;
-}
-.page-btn:disabled {
-  background-color: #555;
-  cursor: not-allowed;
-}
-.page-btn:hover:not(:disabled) {
-  background-color: #0b5ed7;
-  transform: scale(1.05);
-}
-
-/* 채널 링크 호버 효과 */
-.channel-link {
-  transition: color 0.3s ease;
-}
-.channel-link:hover {
-  color: #0d6efd;
-}
-</style>

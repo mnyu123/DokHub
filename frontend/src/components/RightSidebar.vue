@@ -15,13 +15,3 @@
     },
   };
   </script>
-  
-  <style scoped>
-  .right-gif {
-    transition: transform 0.3s ease;
-  }
-  .right-gif:hover {
-    transform: scale(1.05);
-  }
-  </style>
-  

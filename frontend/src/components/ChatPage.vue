@@ -9,13 +9,11 @@
 </template>
 
 <script>
-import HeaderComponent from "@/components/HeaderComponent.vue";
 import ChatHistory from "@/components/ChatHistory.vue";
 
 export default {
   name: "ChatPage",
   components: {
-    HeaderComponent,
     ChatHistory,
   },
   data() {
@@ -31,12 +29,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.chat-page-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-</style>
