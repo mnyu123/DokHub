@@ -6,53 +6,51 @@
       <p class="mt-4">채널 목록을 불러오는 중입니다…</p>
     </div>
 
-    <!-- 내용 -->
     <div v-else>
-      <!-- 상단: 총 개수 + 정렬 -->
+      <!-- 정렬 버튼 -->
       <div class="flex justify-between items-center mb-4">
         <p class="font-bold">총 채널 개수 : {{ totalCount }}</p>
-
         <div class="join">
           <button class="btn join-item"
                   :class="sortBy==='latest' && 'btn-primary'"
-                  @click="sortBy='latest'">
-            최신순
-          </button>
+                  @click="sortBy='latest'">최신순</button>
           <button class="btn join-item"
                   :class="sortBy==='name' && 'btn-primary'"
-                  @click="sortBy='name'">
-            이름순
-          </button>
+                  @click="sortBy='name'">이름순</button>
+          <button class="btn join-item"
+                  :class="sortBy==='random' && 'btn-primary'"
+                  @click="sortBy='random'">랜덤</button>
         </div>
       </div>
 
       <!-- 채널 카드 -->
-      <div v-for="(c,idx) in sortedChannels" :key="idx"
+      <div v-for="c in displayedChannels" :key="c.channelId"
            class="card lg:card-side bg-base-100 shadow-xl mb-6 animate-fadeIn">
-        <!-- 썸네일 -->
         <figure class="basis-1/3">
-          <img :src="c.thumbnailUrl?.trim() || placeholder"
-               class="img-fixed rounded-l-xl">
+          <img
+            :src="getHighRes(c.thumbnailUrl)"
+            @error="$event.target.src = c.thumbnailUrl"
+            class="img-fixed rounded-l-xl"
+            alt="채널 썸네일"
+          />
         </figure>
-
-        <!-- 정보 -->
         <div class="card-body basis-2/3">
           <h2 class="card-title">{{ c.channelName }}</h2>
           <a :href="c.channelLink" target="_blank" class="link link-primary">
             채널 바로가기
           </a>
-
-          <!-- 최신 영상 -->
           <div class="mt-2">
             <h3 class="font-semibold mb-1">최신 영상</h3>
-            <div v-if="!c.recentVideos?.length" class="text-sm opacity-60">
-              없음
-            </div>
+            <div v-if="!c.recentVideos?.length" class="text-sm opacity-60">없음</div>
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-2">
               <a v-for="v in c.recentVideos" :key="v.videoId"
                  :href="`https://youtu.be/${v.videoId}`" target="_blank">
-                <img :src="v.thumbnailUrl || placeholder"
-                     class="img-fixed rounded">
+                <img
+                  :src="getHighRes(v.thumbnailUrl)"
+                  @error="$event.target.src = v.thumbnailUrl"
+                  class="img-fixed rounded"
+                  :alt="v.videoTitle"
+                />
                 <p class="text-xs mt-1 truncate">{{ v.videoTitle }}</p>
               </a>
             </div>
@@ -76,69 +74,93 @@ import axios from 'axios';
 
 const props = defineProps({ selectedTab: String });
 
-/* ─────────────── data ─────────────── */
 const allChannels = ref([]);
+const totalCount  = ref(0);
 const loading     = ref(true);
 const page        = ref(0);
 const size        = 7;
-const totalCount  = ref(0);
 const sortBy      = ref('latest');
-const placeholder = require('@/assets/doksame3.gif');
 
-/* ─────────── reactive watch ─────────── */
-watch(
-   () => props.selectedTab,
-   async () => {
-     page.value = 0;          // 탭 바뀌면 1페이지부터
-     await fetchTotalCount(); // 총 개수 다시
-     await fetchChannels();   // **목록 다시 로드**
-   }
-);
-watch(sortBy,          () => { allChannels.value = [...allChannels.value]; });
-
-/* ───────────── lifecycle ───────────── */
-onMounted(async () => {
-  await fetchTotalCount();
-  await fetchChannels();
-});
-
-/* ────────────── computed ───────────── */
-const sortedChannels = computed(() => [...allChannels.value].sort((a,b) => {
+const displayedChannels = computed(() => {
+  const list = [...allChannels.value];
   if (sortBy.value === 'latest') {
-    return new Date(b.recentVideos?.[0]?.publishedAt || 0) -
-           new Date(a.recentVideos?.[0]?.publishedAt || 0);
+    return list.sort((a, b) =>
+      new Date(b.recentVideos[0]?.publishedAt || 0) -
+      new Date(a.recentVideos[0]?.publishedAt || 0)
+    );
   }
-  return a.channelName.localeCompare(b.channelName);
-}));
+  if (sortBy.value === 'name') {
+    return list.sort((a, b) =>
+      a.channelName.localeCompare(b.channelName)
+    );
+  }
+  if (sortBy.value === 'random') {
+    return list.sort(() => Math.random() - 0.5);
+  }
+  return list;
+});
 const maxPage = computed(() => Math.ceil(totalCount.value / size));
 
-/* ─────────────── methods ───────────── */
 async function fetchTotalCount() {
   try {
-    /* 배포용: Netlify 프록시(또는 nginx) → 같은 도메인 */
-    // const { data } = await axios.get(`/api/channels/${props.selectedTab}/totalCount`);
-    // 로컬 테스트용: 주석 해제 후 사용
-    const { data } = await axios.get(`http://localhost:8080/api/channels/${props.selectedTab}/totalCount`);
-    
+    const { data } = await axios.get(
+      `/api/channels/${props.selectedTab}/totalCount`
+    );
     totalCount.value = data;
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    console.error('fetchTotalCount error:', e);
+  }
 }
 
 async function fetchChannels() {
   loading.value = true;
   try {
-    /* 배포용 */
-    // const { data } = await axios.get(`/api/channels/${props.selectedTab}`,
-    //                                  { params: { page: page.value, size }});
-    // 로컬 테스트용
-    const { data } = await axios.get(`http://localhost:8080/api/channels/${props.selectedTab}`,{ params: { page: page.value, size }});
-    
+    const { data } = await axios.get(
+      `/api/channels/${props.selectedTab}`,
+      { params: { page: page.value, size } }
+    );
     allChannels.value = data;
-  } catch (e) { console.error(e); }
-  finally      { loading.value = false; }
+  } catch (e) {
+    console.error('fetchChannels error:', e);
+  } finally {
+    loading.value = false;
+  }
 }
 
-async function prevPage(){ if(page.value>0){ page.value--; await fetchChannels(); scrollTop(); } }
-async function nextPage(){ if(page.value<maxPage.value-1){ page.value++; await fetchChannels(); scrollTop(); } }
-function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
+function getHighRes(url) {
+  return url.replace(/default\.jpg$/, 'maxresdefault.jpg');
+}
+
+async function loadData() {
+  // 두 호출을 병렬로 실행
+  await Promise.all([fetchTotalCount(), fetchChannels()]);
+}
+
+// 탭 변경 시
+watch(
+  () => props.selectedTab,
+  async () => {
+    page.value = 0;
+    await loadData();
+  }
+);
+
+// 마운트 시
+onMounted(loadData);
+
+function prevPage() {
+  if (page.value > 0) {
+    page.value--;
+    fetchChannels();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function nextPage() {
+  if (page.value < maxPage.value - 1) {
+    page.value++;
+    fetchChannels();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
 </script>
