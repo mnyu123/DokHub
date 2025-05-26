@@ -3,6 +3,7 @@ package com.DokHub.backend.service;
 import com.DokHub.backend.dto.VideoInfoDto;
 import com.DokHub.backend.dto.YouTubeChannelResponse;
 import com.DokHub.backend.dto.YouTubeSearchResponse;
+import com.DokHub.backend.dto.YouTubeVideosResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;     // ^^^ 추가
 import org.springframework.cache.annotation.Cacheable;
@@ -145,7 +146,8 @@ public class YouTubeService {
      * 실제 YouTube API를 호출하여 최근 비디오 목록을 가져오는 내부 메서드
      */
     private List<VideoInfoDto> fetchRecentVideosFromApi(String channelId) {
-        String url = "https://www.googleapis.com/youtube/v3/search"
+        // ① Search API로 최근 3개 videoId 가져오기
+        String searchUrl = "https://www.googleapis.com/youtube/v3/search"
                 + "?part=snippet"
                 + "&channelId=" + channelId
                 + "&maxResults=3"
@@ -153,39 +155,63 @@ public class YouTubeService {
                 + "&type=video"
                 + "&key=" + getCurrentApiKey();
 
-        try {
-            YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
-            return response.getItems().stream().map(item -> new VideoInfoDto(
-                    item.getId().getVideoId(),
-                    item.getSnippet().getTitle(),
-                    LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
-                    item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
-            )).collect(Collectors.toList());
-        } catch (RestClientException e) {
-            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("quota")) {
-                switchToNextApiKey();
-                try {
-                    url = "https://www.googleapis.com/youtube/v3/search"
-                            + "?part=snippet"
-                            + "&channelId=" + channelId
-                            + "&maxResults=3"
-                            + "&order=date"
-                            + "&type=video"
-                            + "&key=" + getCurrentApiKey();
-                    YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
-                    return response.getItems().stream().map(item -> new VideoInfoDto(
-                            item.getId().getVideoId(),
-                            item.getSnippet().getTitle(),
-                            LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
-                            item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
-                    )).collect(Collectors.toList());
-                } catch (Exception ex) {
-                    return Collections.emptyList();
-                }
-            }
+        YouTubeSearchResponse searchRes = restTemplate.getForObject(searchUrl, YouTubeSearchResponse.class);
+        if (searchRes == null || searchRes.getItems() == null || searchRes.getItems().isEmpty()) {
             return Collections.emptyList();
         }
+
+        // videoId 목록 쉼표 연결
+        String joinedIds = searchRes.getItems().stream()
+                .map(item -> item.getId().getVideoId())
+                .collect(Collectors.joining(","));
+
+        // ② videos.list(status) 호출해 상태 확인
+        String videosUrl = "https://www.googleapis.com/youtube/v3/videos"
+                + "?part=status,snippet"
+                + "&id=" + joinedIds
+                + "&key=" + getCurrentApiKey();
+
+        YouTubeVideosResponse videosRes = restTemplate.getForObject(videosUrl, YouTubeVideosResponse.class);
+        if (videosRes == null || videosRes.getItems() == null) {
+            return Collections.emptyList();
+        }
+
+        // id → status 매핑
+        Map<String, YouTubeVideosResponse.Item.Status> statusMap = videosRes.getItems().stream()
+                .collect(Collectors.toMap(YouTubeVideosResponse.Item::getId, YouTubeVideosResponse.Item::getStatus));
+
+        // 필요하면 썸네일 고화질로 교체
+        Map<String, String> highThumbMap = videosRes.getItems().stream()
+                .collect(Collectors.toMap(YouTubeVideosResponse.Item::getId,
+                        it -> Optional.ofNullable(it.getSnippet())
+                                .map(YouTubeVideosResponse.Item.Snippet::getThumbnails)
+                                .map(thumbs -> Optional.ofNullable(thumbs.getHigh()).orElse(thumbs.getMedium()))
+                                .map(YouTubeVideosResponse.Item.Snippet.Thumbnails.Thumbnail::getUrl)
+                                .orElse("")));
+
+        // ③ 조건 필터링 후 DTO 변환
+        return searchRes.getItems().stream()
+                .filter(item -> {
+                    YouTubeVideosResponse.Item.Status st = statusMap.get(item.getId().getVideoId());
+                    return st != null
+                            && "public".equals(st.getPrivacyStatus())
+                            && "processed".equals(st.getUploadStatus())
+                            && Boolean.TRUE.equals(st.getEmbeddable());
+                })
+                .map(item -> {
+                    String vid = item.getId().getVideoId();
+                    String thumb = highThumbMap.getOrDefault(vid,
+                            item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl());
+                    return new VideoInfoDto(
+                            vid,
+                            item.getSnippet().getTitle(),
+                            LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
+                            thumb
+                    );
+                })
+                .collect(Collectors.toList());
     }
+
 
     /**
      * 주기적으로 전체 캐시를 갱신(무효화)하는 스케줄 메서드 (1시간마다 실행)
