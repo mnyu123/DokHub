@@ -17,18 +17,10 @@
         </div>
         <div>
           <!-- 기본 부트스트랩 btn 클래스를 제거하고 커스텀 클래스(sort-btn)만 적용 -->
-          <button 
-            class="sort-btn me-2"
-            @click="sortBy = 'latest'"
-            :class="{ active: sortBy === 'latest' }"
-          >
+          <button class="sort-btn me-2" @click="sortBy = 'latest'" :class="{ active: sortBy === 'latest' }">
             최신순
           </button>
-          <button 
-            class="sort-btn"
-            @click="sortBy = 'name'"
-            :class="{ active: sortBy === 'name' }"
-          >
+          <button class="sort-btn" @click="sortBy = 'name'" :class="{ active: sortBy === 'name' }">
             이름순
           </button>
         </div>
@@ -41,21 +33,14 @@
           <div class="col-4 col-md-3">
             <img
               :src="channel.thumbnailUrl && channel.thumbnailUrl.trim() !== '' ? channel.thumbnailUrl : require('@/assets/doksame3.gif')"
-              class="img-fluid rounded-start channel-thumbnail"
-              alt="video preview"
-            />
+              class="img-fluid rounded-start channel-thumbnail" alt="video preview" />
           </div>
 
           <!-- 채널 정보 -->
           <div class="col-8 col-md-9">
             <div class="card-body">
               <h5 class="card-title">{{ channel.channelName }}</h5>
-              <a
-                class="channel-link"
-                :href="channel.channelLink"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a class="channel-link" :href="channel.channelLink" target="_blank" rel="noopener noreferrer">
                 채널 바로가기
               </a>
 
@@ -66,21 +51,11 @@
                   최신 영상 정보가 없습니다.
                 </div>
                 <div class="row" v-else>
-                  <div 
-                    class="col-6 col-md-4 mb-2 video-card"
-                    v-for="(video, index) in channel.recentVideos" 
-                    :key="index"
-                  >
-                    <a 
-                      :href="`https://youtu.be/${video.videoId}`" 
-                      target="_blank"
-                      class="text-decoration-none"
-                    >
-                      <img
-                        :src="video.thumbnailUrl || require('@/assets/doksame3.gif')"
-                        class="img-thumbnail video-thumbnail"
-                        :alt="video.videoTitle"
-                      />
+                  <div class="col-6 col-md-4 mb-2 video-card" v-for="(video, index) in channel.recentVideos"
+                    :key="index">
+                    <a :href="`https://youtu.be/${video.videoId}`" target="_blank" class="text-decoration-none">
+                      <img :src="video.thumbnailUrl || require('@/assets/doksame3.gif')"
+                        class="img-thumbnail video-thumbnail" :alt="video.videoTitle" />
                       <p class="small text-muted mt-1 text-truncate">
                         {{ video.videoTitle }}
                       </p>
@@ -95,19 +70,11 @@
 
       <!-- 페이징 버튼 -->
       <div class="d-flex justify-content-center align-items-center mt-4">
-        <button 
-          class="page-btn me-3" 
-          @click="prevPage" 
-          :disabled="page <= 0"
-        >
+        <button class="page-btn me-3" @click="prevPage" :disabled="page <= 0">
           이전
         </button>
         <span>Page {{ page + 1 }} / {{ maxPage }}</span>
-        <button 
-          class="page-btn ms-3" 
-          @click="nextPage" 
-          :disabled="page >= maxPage - 1"
-        >
+        <button class="page-btn ms-3" @click="nextPage" :disabled="page >= maxPage - 1">
           다음
         </button>
       </div>
@@ -223,9 +190,17 @@ export default {
 .spinner-container {
   animation: fadeIn 1s ease-in;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 채널 카드 애니메이션 및 호버 효과 */
@@ -233,19 +208,29 @@ export default {
   animation: cardFadeIn 0.5s ease-in-out;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .channel-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
+
 @keyframes cardFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 채널 썸네일 호버 효과 */
 .channel-thumbnail {
   transition: transform 0.3s ease;
 }
+
 .channel-thumbnail:hover {
   transform: scale(1.05);
 }
@@ -260,10 +245,12 @@ export default {
   border-radius: 4px;
   transition: background-color 0.3s ease, transform 0.3s ease;
 }
+
 .sort-nav .sort-btn:hover {
   background-color: rgba(13, 110, 253, 0.2);
   transform: scale(1.05);
 }
+
 .sort-nav .sort-btn.active {
   background-color: #0d6efd;
   color: white;
@@ -280,10 +267,12 @@ export default {
   transition: background-color 0.3s ease, transform 0.3s ease;
   cursor: pointer;
 }
+
 .page-btn:disabled {
   background-color: #555;
   cursor: not-allowed;
 }
+
 .page-btn:hover:not(:disabled) {
   background-color: #0b5ed7;
   transform: scale(1.05);
@@ -293,6 +282,7 @@ export default {
 .channel-link {
   transition: color 0.3s ease;
 }
+
 .channel-link:hover {
   color: #0d6efd;
 }
