@@ -7,6 +7,7 @@ import com.DokHub.backend.repository.ChannelRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,17 +27,33 @@ public class ChannelService {
     /**
      * 페이징 + 배치 썸네일 호출 적용
      */
+    @Transactional
     public List<ChannelDto> getChannelsPaged(String category, int page, int size) {
-        // 1) DB에서 페이지 단위로 채널 조회 (최신 업로드 내림차순)
+        // 0) DB에서 페이지 단위로 채널 조회 (최신 업로드 내림차순)
         Page<ChannelEntity> entityPage = channelRepository
                 .findByCategoryIgnoreCaseOrderByLatestUploadDesc(category, PageRequest.of(page, size));
         List<ChannelEntity> entities = entityPage.getContent();
 
+        // 1) latestUpload == null 인 채널만 모아서 업데이트(2025-06-15 추가)
+        List<ChannelEntity> toUpdate = entities.stream()
+                .filter(ent -> ent.getLatestUpload() == null)
+                .peek(ent -> {
+                    List<VideoInfoDto> vids = youTubeService.getRecentVideosCached(ent.getChannelId());
+                    if (!vids.isEmpty()) {
+                        ent.setLatestUpload(vids.get(0).getPublishedAt());
+                    }
+                })
+                .filter(ent -> ent.getLatestUpload() != null)
+                .collect(Collectors.toList());
+        if (!toUpdate.isEmpty()) {
+            channelRepository.saveAll(toUpdate);
+        }
+
         // 2) 배치로 썸네일 한 번에 가져오기 (YouTube API 호출 1회)
         List<String> channelIds = entities.stream()
                 .map(ChannelEntity::getChannelId)
-                .collect(Collectors.toList());
-        Map<String, String> thumbnailMap = youTubeService.getChannelThumbnailsBatch(channelIds);
+                .toList();
+        Map<String,String> thumbnailMap = youTubeService.getChannelThumbnailsBatch(channelIds);
 
         // 3) DTO 변환 (recentVideos는 캐시 우선)
         return entities.stream()
