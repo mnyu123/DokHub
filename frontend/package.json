@@ -12,7 +12,7 @@
     "bootstrap": "^5.3.6",
     "core-js": "^3.8.3",
     "gsap": "^3.12.7",
-    "swiper": "^11.2.2",
+    "swiper": "^11.2.10",
     "vue": "^3.2.13",
     "vue-router": "^4.0.13",
     "vuetify": "^3.7.0-beta.1"
@@ -36,8 +36,8 @@
       "node": true
     },
     "globals": {
-      "defineProps":  "readonly",
-      "defineEmits":  "readonly",
+      "defineProps": "readonly",
+      "defineEmits": "readonly",
       "defineExpose": "readonly",
       "withDefaults": "readonly"
     },

@@ -8,7 +8,7 @@
     <!-- 가운데 로고 -->
     <router-link to="/" class="flex items-center gap-2">
       <img src="@/assets/dokhublogo.png" class="h-12 w-auto logo-anim" />
-      <span class="text-2xl font-bold">독플릭스</span>
+      <span class="text-2xl font-bold">독허브</span>
     </router-link>
   </header>
 </template>

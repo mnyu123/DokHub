@@ -9,7 +9,7 @@
   <div class="drawer-side z-50">
     <label for="drawer-left" class="drawer-overlay"></label>
     <aside class="menu p-4 w-60 min-h-full bg-base-200 text-base-content">
-      <h2 class="font-bold text-xl mb-4">독플릭스</h2>
+      <h2 class="font-bold text-xl mb-4">독허브</h2>
 
       <ul>
         <li>
