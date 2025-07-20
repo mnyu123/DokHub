@@ -2,13 +2,22 @@
   <Swiper
     :modules="[Pagination]"
     slides-per-view="5"
-    spaceBetween="10"
+    space-between="48"
     :pagination="{ clickable: true }"
-    class="h-64 mb-8"
+    class="h-48 py-8 mb-8"
   >
-    <SwiperSlide v-for="(link, idx) in fixedLinks" :key="idx">
-      <a :href="link.href" target="_blank">
-        <img :src="link.imgSrc" :alt="link.alt" class="w-full h-full object-cover rounded-lg" />
+    <SwiperSlide
+      v-for="(link, idx) in fixedLinks"
+      :key="idx"
+      class="rounded-lg overflow-visible shadow tooltip tooltip-bottom"
+      :data-tip="link.alt"
+    >
+      <a :href="link.href" target="_blank" class="block w-full h-40">
+        <img
+          :src="link.imgSrc"
+          class="w-full h-full object-cover"
+          :alt="link.alt"
+        />
       </a>
     </SwiperSlide>
   </Swiper>
@@ -16,25 +25,25 @@
 
 <script setup>
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Pagination } from 'swiper/modules'
+import { Pagination }            from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/pagination'
 
 const fixedLinks = [
   {
     href: 'https://chzzk.naver.com/b68af124ae2f1743a1dcbf5e2ab41e0b',
-    imgSrc: require('@/assets/dokchzzk.png'),      // Vue CLI에서 assets 폴더 이미지 임포트 :contentReference[oaicite:6]{index=6}
+    imgSrc: require('@/assets/cafe4.jpg'),
     alt:    '독케익 치지직 방송'
   },
   {
     href: 'https://cafe.naver.com/poisoncake',
-    imgSrc: require('@/assets/cafe1.png'), // 나중에 허락받으면 팬아트로 교체 대상 : https://cafe.naver.com/poisoncake?iframe_url_utf8=%2FArticleRead.nhn%253Fclubid%3D30861172%2526articleid%3D35878%2526commentFocus%3Dtrue
+    imgSrc: require('@/assets/cafe5.jpg'),
     alt:    '개떡이 수용소'
   },
   {
     href: 'https://sharp-scarer-41d.notion.site/1b8d01855ab181989094c50446305706?v=1b8d01855ab180eeb7e5000cac6e922d',
-    imgSrc: require('@/assets/pngwing.com.png'),
-    alt:    '독케익 팬아트 검색 사이트'
+    imgSrc: require('@/assets/dokart.png'),
+    alt:    '독케익 예술의 전당'
   },
   {
     href: 'https://thunder-plant-4a0.notion.site/d7cdf50c1aeb4385a4945057caddaf8b',

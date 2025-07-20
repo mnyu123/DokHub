@@ -1,23 +1,13 @@
 <template>
-  <div class="container mx-auto px-4 lg:px-8 space-y-8">
-    <TabNavigation 
-      :selectedTab="selectedTab" 
-      @update:tab="selectedTab = $event" />
+  <div class="container mx-auto px-6 lg:px-12 space-y-10 py-8">
+    <TabNavigation :selectedTab="selectedTab" @update:tab="selectedTab=$event" />
+    <LiveStatus class="my-6" />
 
-    <LiveStatus class="my-4" />
+    <ChannelSlider :selectedTab="selectedTab" />
 
-    <!-- 1) 채널 슬라이더 -->
-    <ChannelSlider 
-      :selectedTab="selectedTab" 
-      class="mb-8" />
-
-    <!-- 2) 고정 링크 슬라이더 -->
     <CustomLinksSlider />
 
-    <!-- 3) 채널/클립 리스트 -->
-    <ChannelList 
-      :selectedTab="selectedTab" 
-      :key="selectedTab" />
+    <ChannelList :selectedTab="selectedTab" :key="selectedTab" />
   </div>
 </template>
 

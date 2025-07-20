@@ -6,21 +6,20 @@
     grabCursor
     navigation
     :pagination="{ clickable: true }"
-    class="h-64"
+    class="h-72 py-4"
   >
     <SwiperSlide
       v-for="c in channels"
       :key="c.channelId"
-      class="relative rounded-xl overflow-hidden"
+      class="relative rounded-xl overflow-hidden mx-2"
     >
       <a :href="c.channelLink" target="_blank" class="block w-full h-full">
         <img
           :src="getHighRes(c.thumbnailUrl)"
-          @error="$event.target.src = c.thumbnailUrl"
           class="w-full h-full object-cover"
           alt="채널 썸네일"
         />
-        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
           <h3 class="text-white text-lg font-semibold">{{ c.channelName }}</h3>
         </div>
       </a>
@@ -42,10 +41,8 @@ const channels = ref([])
 
 async function fetchChannels() {
   const url = `http://localhost:8080/api/channels/${props.selectedTab}?page=0&size=7`
-  const { data } = await axios.get(url)
-  channels.value = data
+  channels.value = (await axios.get(url)).data
 }
-
 function getHighRes(url) {
   return url.replace(/default\.jpg$/, 'maxresdefault.jpg')
 }
