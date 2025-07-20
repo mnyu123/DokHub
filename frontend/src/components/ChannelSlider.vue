@@ -1,30 +1,43 @@
 <template>
-  <Swiper
-    :modules="[Navigation, Pagination, A11y]"
-    slides-per-view="auto"
-    centeredSlides
-    grabCursor
-    navigation
-    :pagination="{ clickable: true }"
-    class="h-72 py-4"
-  >
-    <SwiperSlide
-      v-for="c in channels"
-      :key="c.channelId"
-      class="relative rounded-xl overflow-hidden mx-2"
+  <div>
+    <!-- 슬라이더 상단 제목 -->
+    <h2 class="text-4xl font-bold text-white mb-6">이번주 최신순 클립</h2>
+
+    <Swiper
+      :modules="[Navigation, Pagination, A11y]"
+      slides-per-view="auto"
+      centeredSlides
+      grabCursor
+      navigation
+      :pagination="{ clickable: true }"
+      :initial-slide="3"
+      class="h-80 py-6"
     >
-      <a :href="c.channelLink" target="_blank" class="block w-full h-full">
-        <img
-          :src="getHighRes(c.thumbnailUrl)"
-          class="w-full h-full object-cover"
-          alt="채널 썸네일"
-        />
-        <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-          <h3 class="text-white text-lg font-semibold">{{ c.channelName }}</h3>
-        </div>
-      </a>
-    </SwiperSlide>
-  </Swiper>
+      <SwiperSlide
+        v-for="clip in sliderClips"
+        :key="clip.videoId"
+        class="mx-3 flex-shrink-0 overflow-hidden rounded-lg shadow-md"
+        style="width: 300px;"
+      >
+        <a
+          :href="`https://youtu.be/${clip.videoId}`"
+          target="_blank"
+          class="block w-full h-full"
+        >
+          <img
+            :src="getHighRes(clip.thumbnailUrl)"
+            @error="$event.target.src = defaultImg"
+            class="w-full h-48 object-cover rounded-t-md"
+            :alt="clip.videoTitle"
+          />
+          <div class="p-3 bg-base-100">
+            <p class="font-semibold truncate">{{ clip.videoTitle }}</p>
+            <p class="text-sm text-gray-500 truncate">{{ clip.channelName }}</p>
+          </div>
+        </a>
+      </SwiperSlide>
+    </Swiper>
+  </div>
 </template>
 
 <script setup>
@@ -35,18 +48,37 @@ import { Navigation, Pagination, A11y } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+import defaultImg from '@/assets/doksame3.gif'
 
-const props    = defineProps({ selectedTab: String })
-const channels = ref([])
+const props = defineProps({ selectedTab: String })
+const sliderClips = ref([])
 
-async function fetchChannels() {
-  const url = `http://localhost:8080/api/channels/${props.selectedTab}?page=0&size=7`
-  channels.value = (await axios.get(url)).data
+async function fetchSliderClips() {
+  // 일주일 새 올라온 카테고리=clip 채널 7개 호출
+  const { data } = await axios.get(
+    `http://localhost:8080/api/channels/clip`,
+    { params: { page: 0, size: 7 } }
+  )
+  // 각 채널의 첫번째 recentVideos만 뽑기
+  sliderClips.value = data
+    .map(c => {
+      const v = c.recentVideos?.[0]
+      return v
+        ? {
+            videoId: v.videoId,
+            thumbnailUrl: v.thumbnailUrl,
+            channelName: c.channelName,
+            videoTitle: v.videoTitle
+          }
+        : null
+    })
+    .filter(Boolean)
 }
+
 function getHighRes(url) {
   return url.replace(/default\.jpg$/, 'maxresdefault.jpg')
 }
 
-onMounted(fetchChannels)
-watch(() => props.selectedTab, fetchChannels)
+onMounted(fetchSliderClips)
+watch(() => props.selectedTab, fetchSliderClips)
 </script>

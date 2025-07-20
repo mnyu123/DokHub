@@ -1,95 +1,83 @@
 <template>
   <div>
-    <!-- 1) 최신 클립 모드 -->
-    <div
-      v-if="sortBy === 'latest'"
-      class="mt-8"
-    >
-      <!-- 타이틀 강조색(text-primary) + 위아래 여백 -->
-      <h2
-        class="text-4xl font-bold text-white mb-6"
-      >
-        최신 클립 목록
-      </h2>
+    <!-- 로딩 스피너 -->
+    <div v-if="loading" class="flex justify-center items-center my-10">
+      <span class="loading loading-spinner loading-lg"></span>
+    </div>
 
-      <!-- 클립 카드 그리드: gap-8 으로 카드 사이 여백 증가 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        <div
-          v-for="clip in displayedClips"
-          :key="clip.videoId"
-          class="card bg-base-100 shadow-md hover:shadow-lg transition py-4"
-        >
-          <!-- 썸네일 클릭 → 영상 이동 -->
-          <a
-            :href="`https://youtu.be/${clip.videoId}`"
-            target="_blank"
-            class="block"
+    <div v-else>
+      <!-- 1) replay 탭을 제외한 모든 탭에서: 클립 그리드 -->
+      <div v-if="isGridMode" class="mt-8">
+        <h2 class="text-4xl font-bold text-white mb-6">최신 클립 목록</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          <div
+            v-for="clip in displayedClips"
+            :key="clip.videoId"
+            class="card bg-base-100 shadow-md hover:shadow-lg transition py-4"
           >
-            <figure>
+            <a
+              :href="`https://youtu.be/${clip.videoId}`"
+              target="_blank"
+              class="block"
+            >
               <img
                 :src="getHighRes(clip.thumbnailUrl)"
+                @error="$event.target.src = defaultImg"
                 class="w-full h-64 object-cover rounded-t-md"
                 alt="클립 썸네일"
               />
-            </figure>
-          </a>
-          <div class="px-4 pt-3 pb-4">
-            <!-- 제목: hover 시 강조색 + 밑줄 -->
-            <a
-              :href="`https://youtu.be/${clip.videoId}`"
-              class="font-semibold truncate block hover:text-primary hover:underline"
-            >
-              {{ clip.videoTitle }}
             </a>
-            <!-- 채널명: hover 시 강조색 -->
-            <a
-              :href="clip.channelLink"
-              class="text-sm text-gray-500 mt-2 block hover:text-primary hover:underline"
-            >
-              {{ clip.channelName }}
+            <div class="px-4 pt-3 pb-4">
+              <a
+                :href="`https://youtu.be/${clip.videoId}`"
+                class="font-semibold truncate block hover:text-primary hover:underline"
+              >
+                {{ clip.videoTitle }}
+              </a>
+              <a
+                :href="clip.channelLink"
+                class="text-sm text-gray-500 mt-2 block hover:text-primary hover:underline"
+              >
+                {{ clip.channelName }}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2) replay 탭일 때만: 채널 리스트 -->
+      <div v-else class="space-y-8 mt-8">
+        <p class="font-bold mb-4">총 채널 개수 : {{ totalCount }}</p>
+        <div
+          v-for="c in pagedChannels"
+          :key="c.channelId"
+          class="card lg:card-side bg-base-100 shadow-xl animate-fadeIn py-4"
+        >
+          <img
+            :src="getHighRes(c.thumbnailUrl)"
+            @error="$event.target.src = defaultImg"
+            class="w-full lg:w-1/3 h-64 object-cover rounded-l-xl"
+            alt="채널 썸네일"
+          />
+          <div class="card-body basis-2/3">
+            <h2 class="card-title">{{ c.channelName }}</h2>
+            <a :href="c.channelLink" target="_blank" class="link link-primary">
+              채널 바로가기
             </a>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 2) 최신 클립 모드가 아닐 때: 기존 채널 리스트 (gap-8만 적용) -->
-    <div v-else class="space-y-8 mt-8">
-      <p class="font-bold mb-4">총 채널 개수 : {{ totalCount }}</p>
-      <div
-        v-for="c in displayedChannels"
-        :key="c.channelId"
-        class="card lg:card-side bg-base-100 shadow-xl animate-fadeIn py-4"
-      >
-        <figure class="basis-1/3">
-          <img
-            :src="getHighRes(c.thumbnailUrl)"
-            class="w-full h-64 object-cover rounded-l-xl"
-            alt="채널 썸네일"
-          />
-        </figure>
-        <div class="card-body basis-2/3">
-          <h2 class="card-title">{{ c.channelName }}</h2>
-          <a :href="c.channelLink" target="_blank" class="link link-primary">
-            채널 바로가기
-          </a>
-          <!-- 이하 생략 -->
-        </div>
+      <!-- 3) 페이징 -->
+      <div class="flex justify-center items-center gap-6 my-8">
+        <button class="btn btn-sm" @click="prevPage" :disabled="isPrevDisabled">
+          이전
+        </button>
+        <span class="text-lg font-medium">{{ currentPage }} / {{ maxPage }}</span>
+        <button class="btn btn-sm" @click="nextPage" :disabled="isNextDisabled">
+          다음
+        </button>
       </div>
-    </div>
-
-    <!-- 3) 페이징 -->
-    <div class="flex justify-center items-center gap-6 my-8">
-      <button class="btn btn-sm" @click="prevPage" :disabled="isPrevDisabled">
-        이전
-      </button>
-      <span class="text-lg font-medium">
-        {{ sortBy==='latest' ? clipPage+1 : channelPage+1 }} /
-        {{ sortBy==='latest' ? clipMaxPage : channelMaxPage }}
-      </span>
-      <button class="btn btn-sm" @click="nextPage" :disabled="isNextDisabled">
-        다음
-      </button>
     </div>
   </div>
 </template>
@@ -97,34 +85,44 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import defaultImg from '@/assets/doksame3.gif'
 
-const props = defineProps({ selectedTab: String })
-
-// state
+const props       = defineProps({ selectedTab: String })
 const allChannels = ref([])
 const totalCount  = ref(0)
 const loading     = ref(true)
 const channelPage = ref(0)
 const clipPage    = ref(0)
 const size        = 9
+const skipCount = computed(() =>
+   props.selectedTab === 'clip' ? 7 : 0
+)
 const sortBy      = ref('latest')
 
-// 1) 클립 목록 계산
+// replay 탭만 제외하고 클립 그리드 모드
+const isGridMode = computed(() => props.selectedTab !== 'replay')
+
+// 모든 클립(flat) → 최신순 정렬
+const allClips = computed(() =>
+  allChannels.value
+    .flatMap(c =>
+      (c.recentVideos || []).map(v => ({
+        ...v,
+        channelName: c.channelName,
+        channelLink: c.channelLink
+      }))
+    )
+    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+)
+
+// 화면에 보여줄 클립
 const displayedClips = computed(() => {
-  const clips = allChannels.value.flatMap(c =>
-    (c.recentVideos || []).map(v => ({
-      ...v,
-      channelName: c.channelName,
-      channelLink: c.channelLink  // 채널 링크 추가
-    }))
-  )
-  clips.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-  const start = clipPage.value * size
-  return clips.slice(start, start + size)
+  const start = skipCount.value + clipPage.value * size
+  return allClips.value.slice(start, start + size)
 })
 
-// 2) 채널별 뷰
-const displayedChannels = computed(() => {
+// 채널 정렬
+const sortedChannels = computed(() => {
   const list = [...allChannels.value]
   if (sortBy.value === 'latest') {
     return list.sort((a, b) =>
@@ -141,39 +139,53 @@ const displayedChannels = computed(() => {
   return list
 })
 
-// 페이징 계산
-const channelMaxPage = computed(() => Math.ceil(totalCount.value / size))
-const clipMaxPage    = computed(() => {
-  const totalClips = allChannels.value.flatMap(c => c.recentVideos || []).length
-  return Math.ceil(totalClips / size)
-})
-const isPrevDisabled = computed(() =>
-  sortBy.value === 'latest' ? clipPage.value <= 0 : channelPage.value <= 0
-)
-const isNextDisabled = computed(() =>
-  sortBy.value === 'latest'
-    ? clipPage.value >= clipMaxPage.value - 1
-    : channelPage.value >= channelMaxPage.value - 1
+// 화면에 보여줄 채널 페이지
+const pagedChannels = computed(() =>
+  sortedChannels.value.slice(channelPage.value * size, (channelPage.value + 1) * size)
 )
 
-// API 호출
+// 페이징 계산
+const maxPage = computed(() =>
+  isGridMode.value
+    ? Math.ceil((allClips.value.length - skipCount.value) / size)
+    : Math.ceil(totalCount.value / size)
+)
+
+const currentPage = computed(() =>
+  isGridMode.value ? clipPage.value + 1 : channelPage.value + 1
+)
+
+const isPrevDisabled = computed(() =>
+  isGridMode.value ? clipPage.value <= 0 : channelPage.value <= 0
+)
+
+const isNextDisabled = computed(() =>
+  isGridMode.value
+    ? clipPage.value >= maxPage.value - 1
+    : channelPage.value >= maxPage.value - 1
+)
+
+// API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
 async function fetchTotalCount() {
-  const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`
-  const { data } = await axios.get(url)
-  totalCount.value = data
+  // const url = `/api/channels/${props.selectedTab}/totalCount`  // production
+  const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
+  totalCount.value = (await axios.get(url)).data
 }
 async function fetchChannels() {
+  // const url = `/api/channels/${props.selectedTab}`  // production
+  const url = `http://localhost:8080/api/channels/${props.selectedTab}`  // dev
+  allChannels.value = (await axios.get(url, {
+    params: { page: channelPage.value, size }
+  })).data
+}
+
+async function loadChannelData() {
   loading.value = true
-  const url = `http://localhost:8080/api/channels/${props.selectedTab}`
-  const { data } = await axios.get(url, { params: { page: channelPage.value, size } })
-  allChannels.value = data
+  await Promise.all([fetchTotalCount(), fetchChannels()])
   loading.value = false
 }
 
-// 초기/탭 변경
-async function loadChannelData() {
-  await Promise.all([fetchTotalCount(), fetchChannels()])
-}
+// 초기/탭 변경 시 데이터 로드
 onMounted(loadChannelData)
 watch(() => props.selectedTab, () => {
   channelPage.value = 0
@@ -181,38 +193,27 @@ watch(() => props.selectedTab, () => {
   loadChannelData()
 })
 
-// 정렬 변경
-watch(sortBy, val => {
-  if (val === 'latest') clipPage.value = 0
-  else {
-    channelPage.value = 0
-    loadChannelData()
-  }
-})
-
 // 페이지 이동
 function prevPage() {
-  if (sortBy.value === 'latest' && clipPage.value > 0) {
+  if (isGridMode.value && clipPage.value > 0) {
     clipPage.value--
-  }
-  else if (channelPage.value > 0) {
+  } else if (!isGridMode.value && channelPage.value > 0) {
     channelPage.value--
     loadChannelData()
   }
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 function nextPage() {
-  if (sortBy.value === 'latest' && clipPage.value < clipMaxPage.value - 1) {
+  if (isGridMode.value && clipPage.value < maxPage.value - 1) {
     clipPage.value++
-  }
-  else if (channelPage.value < channelMaxPage.value - 1) {
+  } else if (!isGridMode.value && channelPage.value < maxPage.value - 1) {
     channelPage.value++
     loadChannelData()
   }
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// 썸네일 고해상도
+// 썸네일 고해상도 변환
 function getHighRes(url) {
   return url.replace(/default\.jpg$/, 'maxresdefault.jpg')
 }
