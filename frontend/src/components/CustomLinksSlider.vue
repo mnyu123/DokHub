@@ -24,7 +24,13 @@
         <img
           :src="link.imgSrc"
           :alt="link.alt"
-          class="w-16 h-16 object-contain"
+          :class="[
+            'object-contain transition-transform',
+            // 기본 사이즈
+            'w-16 h-32',
+            // 개떡이 수용소만 살짝 크게
+            link.alt === '개떡이 수용소(팬 카페)' ? 'w-48 h-32' : ''
+          ]"
         />
       </a>
     </SwiperSlide>
