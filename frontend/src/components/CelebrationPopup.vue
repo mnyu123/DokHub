@@ -24,7 +24,7 @@ export default {
     displayText() {
       return this.daysRemaining > 0
         ? `D-${this.daysRemaining}`
-        : '독쌤 반가워~~~';
+        : '!독케익 복귀 축하!';
     }
   },
   methods: {
