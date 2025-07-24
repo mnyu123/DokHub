@@ -36,7 +36,7 @@ export default {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       // 2025년 7월 26일 (월은 0부터 시작하므로 6)
-      const target = new Date(2025, 6, 26);
+      const target = new Date(2025, 6, 28);
       const diffMs = target - today;
       const msPerDay = 1000 * 60 * 60 * 24;
       return Math.floor(diffMs / msPerDay);
