@@ -1,7 +1,6 @@
 <template>
   <div id="app" :class="themeClass">
 
-    <CelebrationPopup />
 
     <HeaderComponent :theme="theme" @toggle-theme="toggleTheme" />
     <!-- 라우터에 의해 콘텐츠가 변경됨 -->
@@ -13,14 +12,12 @@
 <script>
 import HeaderComponent from "@/components/HeaderComponent.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
-import CelebrationPopup from "@/components/CelebrationPopup.vue";
 
 export default {
   name: "App",
   components: {
     HeaderComponent,
     FooterComponent,
-    CelebrationPopup,
   },
   data() {
     return {
