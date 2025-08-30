@@ -18,6 +18,9 @@ public class ChzzkLiveService {
     // 체크할 대상 채널 ID
     private static final String TARGET_CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
 
+    // 테스트용 방송 체크 채널
+    private static final String TARGET_CHANNEL_TEST_ID = "17aa057a8248b53affe30512a91481f5";
+
     // application.properties에 정의된 값 주입
     @Value("${chzzk.client.id}")
     private String clientId;
@@ -78,7 +81,7 @@ public class ChzzkLiveService {
                         String channelId = item.path("channelId").asText();
                         // 2025-05-04 서버에 로그가 너무많아서 주석
                         // log.info("[DOKHUB]: 채널 ID 체크: {}", channelId);
-                        if (TARGET_CHANNEL_ID.equals(channelId)) {
+                        if (TARGET_CHANNEL_TEST_ID.equals(channelId)) {
                             log.info("[DOKHUB]: 타겟 채널 {} 는 현재 라이브중", TARGET_CHANNEL_ID);
                             return true;
                         }

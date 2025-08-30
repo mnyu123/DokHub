@@ -12,7 +12,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,6 +41,10 @@ public class YouTubeService {
                 .map(String::trim)
                 .filter(key -> !key.isEmpty())
                 .collect(Collectors.toList());
+        // 빈 키 방어
+        if (this.apiKeys.isEmpty()) {
+            throw new IllegalStateException("[DOKHUB] youtube.api.key 가 설정되지 않았습니다. 최소 1개 이상 등록하세요.");
+        }
     }
 
     /**
@@ -55,6 +61,20 @@ public class YouTubeService {
         int nextIndex = (currentKeyIndex.get() + 1) % apiKeys.size();
         currentKeyIndex.set(nextIndex);
         System.out.println("[DOKHUB] : API 한도가 넘어 키를 교체합니다. " + getCurrentApiKey());
+    }
+
+    // RFC3339(Z, +09:00 등) 안전 파싱
+    private LocalDateTime parsePublishedAt(String s) {
+        if (s == null || s.isBlank()) return LocalDateTime.MIN;
+        try {
+            return OffsetDateTime.parse(s).toLocalDateTime();
+        } catch (DateTimeParseException e) {
+            try {
+                return LocalDateTime.parse(s);
+            } catch (DateTimeParseException ignored) {
+                return LocalDateTime.MIN;
+            }
+        }
     }
 
     /**
@@ -75,12 +95,27 @@ public class YouTubeService {
 
         try {
             YouTubeChannelResponse response = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+
+            /* 기존코드 주석처리
             Map<String, String> resultMap = response.getItems().stream().collect(Collectors.toMap(
                     YouTubeChannelResponse.Item::getId,
                     item -> item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
             ));
+            */
+
+            if (response == null || response.getItems() == null) return Collections.emptyMap();
+            Map<String, String> resultMap = response.getItems().stream().collect(Collectors.toMap(
+                    YouTubeChannelResponse.Item::getId,
+                    item -> {
+                        if (item.getSnippet() == null || item.getSnippet().getThumbnails() == null || item.getSnippet().getThumbnails().getDefaultThumbnail() == null) {
+                            return "";
+                        }
+                        return item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl();
+                    }
+            ));
+
             // 로컬 캐시에 저장
-            resultMap.forEach(thumbnailsCache::put);
+            thumbnailsCache.putAll(resultMap);
             return resultMap;
         } catch (RestClientException e) {
             // 호출 한도 초과(quota) 등의 경우 메시지에 "quota"가 포함되어 있으면 API 키 전환 후 재시도
@@ -96,7 +131,7 @@ public class YouTubeService {
                             YouTubeChannelResponse.Item::getId,
                             item -> item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
                     ));
-                    resultMap.forEach(thumbnailsCache::put);
+                    thumbnailsCache.putAll(resultMap);
                     return resultMap;
                 } catch (Exception ex) {
                     return Collections.emptyMap();
@@ -123,7 +158,7 @@ public class YouTubeService {
      */
     @Cacheable(value = "youtubeVideos", key = "#channelId")
     public List<VideoInfoDto> getRecentVideos(String channelId) {
-        if (channelId.isEmpty()) {
+        if (channelId == null || channelId.isEmpty()) {
             return Collections.emptyList();
         }
         List<VideoInfoDto> videos = fetchRecentVideosFromApi(channelId);
@@ -135,6 +170,9 @@ public class YouTubeService {
      * 캐시된 최근 비디오 리스트를 우선적으로 반환하는 편의 메서드
      */
     public List<VideoInfoDto> getRecentVideosCached(String channelId) {
+        if (channelId == null || channelId.isEmpty()) {
+            return Collections.emptyList();
+        }
         if (recentVideosCache.containsKey(channelId)) {
             return recentVideosCache.get(channelId);
         }
@@ -188,9 +226,9 @@ public class YouTubeService {
     }
 
     /**
-     * 주기적으로 전체 캐시를 갱신(무효화)하는 스케줄 메서드 (1시간마다 실행)
+     * 주기적으로 전체 캐시를 갱신(무효화)하는 스케줄 메서드 (6시간마다 실행)
      */
-    @Scheduled(fixedRate = 21600000) // 1시간 마다 실행
+    @Scheduled(fixedRate = 21600000) // 6시간 마다 실행
     @CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch"}, allEntries = true)
     public void refreshCache() {
         recentVideosCache.clear();
