@@ -1,13 +1,19 @@
 <template>
   <Swiper
     :modules="[Pagination]"
+    :breakpoints="{
+      0:   { slidesPerView: 4.2, spaceBetween: 12, allowTouchMove: true  },
+      360: { slidesPerView: 4.8, spaceBetween: 14, allowTouchMove: true  },
+      480: { slidesPerView: 5.2, spaceBetween: 16, allowTouchMove: true  },
+      768: { slidesPerView: 5,   spaceBetween: 32, allowTouchMove: false }
+    }"
     slides-per-view="5"
     space-between="32"
     :pagination="{ clickable: true }"
     initialSlide="2"
     :allow-touch-move="false"
     grabCursor
-    class="py-4 pb-16 mb-8 overflow-visible"
+    class="py-4 pb-24 mb-24 sm:pb-16 sm:mb-8 overflow-visible relative z-10"
     style="overflow: visible;"
   >
     <SwiperSlide
@@ -25,7 +31,8 @@
         <img
           :src="link.imgSrc"
           :alt="link.alt"
-          class="object-contain transition-transform w-32 h-32"
+          class="object-contain transition-transform w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28"
+          loading="lazy"
         />
       </a>
     </SwiperSlide>
@@ -56,7 +63,7 @@ const fixedLinks = [
   },
   {
     href: 'https://thunder-plant-4a0.notion.site/d7cdf50c1aeb4385a4945057caddaf8b',
-    imgSrc: require('@/assets/dok_game_lib_ico.png'),
+    imgSrc: require('@/assets/dok_game_lib_ico2.png'),
     alt:    '독케익 종합게임 라이브러리'
   },
   {

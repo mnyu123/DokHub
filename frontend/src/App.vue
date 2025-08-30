@@ -19,7 +19,7 @@
       <!-- 독채팅 FAB -->
       <button
         @click="goChat"
-        class="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-focus transition"
+        class="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-focus transition z-[95]"
       >
         <i class="fa-solid fa-message"></i>
       </button>
@@ -28,7 +28,7 @@
       <button
         v-if="liveOn"
         @click="goLive"
-        class="fixed bottom-20 right-6 p-4 bg-red-500 text-white rounded-full shadow-lg animate-pulse transition"
+        class="fixed bottom-20 right-6 p-4 bg-red-500 text-white rounded-full shadow-lg animate-pulse transition z-[100]"
       >
         LIVE
       </button>
@@ -36,7 +36,7 @@
       <!-- 방송중 토스트 배너 -->
       <div
         v-if="showToast"
-        class="fixed top-4 inset-x-0 flex justify-center pointer-events-none"
+        class="fixed top-4 inset-x-0 flex justify-center z-[70]"
       >
         <div class="bg-green-500 text-white px-4 py-2 rounded shadow-lg">
           방송 중입니다! <button @click="goLive" class="underline">시청하기</button>
@@ -63,7 +63,7 @@ function goChat() {
   window.location.href = '/chat/dokchat';
 }
 function goLive() {
-  window.open('https://chzzk.naver.com/live/b68af124ae2f1743a1dcbf5e2ab41e0b', '_blank');
+  window.open('https://chzzk.naver.com/b68af124ae2f1743a1dcbf5e2ab41e0b', '_blank');
 }
 
 const liveOn = ref(false);

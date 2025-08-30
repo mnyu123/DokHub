@@ -181,8 +181,16 @@ async function fetchChannels() {
 
 async function loadChannelData() {
   loading.value = true
-  await Promise.all([fetchTotalCount(), fetchChannels()])
-  loading.value = false
+  try {
+    if (props.selectedTab === 'replay') {
+      await Promise.all([fetchTotalCount(), fetchChannels()])
+    } else {
+      await fetchChannels()
+      totalCount.value = 0
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 // 초기/탭 변경 시 데이터 로드
