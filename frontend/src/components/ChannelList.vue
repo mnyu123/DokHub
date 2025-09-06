@@ -145,11 +145,17 @@ const pagedChannels = computed(() =>
 )
 
 // 페이징 계산
-const maxPage = computed(() =>
-  isGridMode.value
-    ? Math.ceil((allClips.value.length - skipCount.value) / size)
-    : Math.ceil(totalCount.value / size)
-)
+const maxPage = computed(() => {
+  if (isGridMode.value) {
+    // 그리드(클립) 모드: skipCount로 음수 방지 + 최소 1페이지 보장
+    const effective = Math.max(0, allClips.value.length - skipCount.value)
+    return Math.max(1, Math.ceil(effective / size))
+  } else {
+    // replay 모드: totalCount가 0이어도 최소 1페이지 보장
+    const total = Math.max(0, totalCount.value || 0)
+    return Math.max(1, Math.ceil(total / size))
+  }
+})
 
 const currentPage = computed(() =>
   isGridMode.value ? clipPage.value + 1 : channelPage.value + 1
