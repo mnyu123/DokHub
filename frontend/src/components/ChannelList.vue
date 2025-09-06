@@ -45,31 +45,46 @@
         </div>
       </div>
 
-      <!-- 2) replay 탭일 때만: 채널 리스트 -->
-      <div v-else class="space-y-8 mt-8">
-        <p class="font-bold mb-4">총 채널 개수 : {{ totalCount }}</p>
+            <!-- 2) replay 탭일 때만: 채널 리스트 -->
+      <div v-else class="space-y-4 mt-8">
+        <h2 class="text-3xl font-bold">리플레이 재생목록</h2>
+        <!-- 백엔드에서 재생목록 아이템을 받아 세로 카드로 나열 -->
         <div
-          v-for="c in pagedChannels"
-          :key="c.channelId"
-          class="card lg:card-side bg-base-100 shadow-xl animate-fadeIn py-4"
+          v-for="it in replayItems"
+          :key="it.videoId"
+          class="card bg-base-100 shadow-md hover:shadow-lg transition"
         >
-          <img
-            :src="getHighRes(c.thumbnailUrl)"
-            @error="$event.target.src = defaultImg"
-            class="w-full lg:w-1/3 h-64 object-cover rounded-l-xl"
-            alt="채널 썸네일"
-          />
-          <div class="card-body basis-2/3">
-            <h2 class="card-title">{{ c.channelName }}</h2>
-            <a :href="c.channelLink" target="_blank" class="link link-primary">
-              채널 바로가기
-            </a>
+          <a
+            :href="`https://www.youtube.com/watch?v=${it.videoId}&list=${REPLAY_PLAYLIST_ID}`"
+            target="_blank"
+            class="flex items-stretch"
+          >
+            <img
+              :src="getHighRes(it.thumbnailUrl)"
+              @error="$event.target.src = defaultImg"
+              class="w-48 h-28 object-cover rounded-l-md"
+              alt="리플레이 썸네일"
+            />
+            <div class="p-3 flex-1">
+              <p class="font-semibold line-clamp-2">{{ it.videoTitle }}</p>
+              <p v-if="it.publishedAt" class="text-xs opacity-70 mt-1">
+                {{ new Date(it.publishedAt).toLocaleString('ko-KR') }}
+              </p>
+            </div>
+          </a>
+        </div>
+
+        <!-- 아이템이 없을 때: 채널 재생목록 페이지로 유도 -->
+        <div v-if="!replayItems.length" class="text-center">
+          <div class="alert alert-info my-4">
+            재생목록을 불러오지 못했습니다. 유튜브에서 직접 확인해 주세요.
           </div>
+          <a :href="channelPlaylistsUrl" target="_blank" class="btn btn-primary">유튜브 재생목록으로 이동</a>
         </div>
       </div>
 
       <!-- 3) 페이징 -->
-      <div class="flex justify-center items-center gap-6 my-8">
+      <div v-if="isGridMode" class="flex justify-center items-center gap-6 my-8">
         <button class="btn btn-sm" @click="prevPage" :disabled="isPrevDisabled">
           이전
         </button>
@@ -90,6 +105,11 @@ import defaultImg from '@/assets/doksame3.gif'
 const props       = defineProps({ selectedTab: String })
 const allChannels = ref([])
 const totalCount  = ref(0)
+// ▼ replay 재생목록 아이템 (백엔드에서 받아옴)
+const replayItems = ref([])
+// ▼ 요청하신 플레이리스트 ID 고정 및 채널 재생목록 이동용 링크
+const REPLAY_PLAYLIST_ID  = 'PLJRYmIJL3iscMUMNM2KCk2GpGe0W_HAax'
+const channelPlaylistsUrl = 'https://www.youtube.com/@%EC%A7%AD%EC%BC%80%EC%9D%B5/playlists'
 const loading     = ref(true)
 const channelPage = ref(0)
 const clipPage    = ref(0)
@@ -140,6 +160,7 @@ const sortedChannels = computed(() => {
 })
 
 // 화면에 보여줄 채널 페이지
+/* eslint-disable-next-line no-unused-vars */
 const pagedChannels = computed(() =>
   sortedChannels.value.slice(channelPage.value * size, (channelPage.value + 1) * size)
 )
@@ -172,6 +193,7 @@ const isNextDisabled = computed(() =>
 )
 
 // API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
+/* eslint-disable-next-line no-unused-vars */
 async function fetchTotalCount() {
   // const url = `/api/channels/${props.selectedTab}/totalCount`  // production
   const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
@@ -185,11 +207,23 @@ async function fetchChannels() {
   })).data
 }
 
+// API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
+async function fetchPlaylistItems() {
+  // const url = `/api/playlist/${REPLAY_PLAYLIST_ID}`  // production
+  const url = `http://localhost:8080/api/playlist/${REPLAY_PLAYLIST_ID}`  // dev
+  const { data } = await axios.get(url, { params: { maxResults: 25 } })
+  replayItems.value = Array.isArray(data) ? data : []
+}
+
+
 async function loadChannelData() {
   loading.value = true
   try {
     if (props.selectedTab === 'replay') {
-      await Promise.all([fetchTotalCount(), fetchChannels()])
+      // 재생목록을 백엔드에서 받아서 세로 목록으로 표시
+      //await Promise.all([fetchTotalCount(), fetchChannels()])
+      await fetchPlaylistItems()
+      totalCount.value = 0 // replay에선 페이징 미사용
     } else {
       await fetchChannels()
       totalCount.value = 0
