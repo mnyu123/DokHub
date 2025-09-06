@@ -195,13 +195,13 @@ const isNextDisabled = computed(() =>
 // API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
 /* eslint-disable-next-line no-unused-vars */
 async function fetchTotalCount() {
-  // const url = `/api/channels/${props.selectedTab}/totalCount`  // production
-  const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
+  const url = `/api/channels/${props.selectedTab}/totalCount`  // production
+  // const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
   totalCount.value = (await axios.get(url)).data
 }
 async function fetchChannels() {
-  // const url = `/api/channels/${props.selectedTab}`  // production
-  const url = `http://localhost:8080/api/channels/${props.selectedTab}`  // dev
+  const url = `/api/channels/${props.selectedTab}`  // production
+  // const url = `http://localhost:8080/api/channels/${props.selectedTab}`  // dev
   allChannels.value = (await axios.get(url, {
     params: { page: channelPage.value, size }
   })).data
@@ -209,8 +209,8 @@ async function fetchChannels() {
 
 // API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
 async function fetchPlaylistItems() {
-  // const url = `/api/playlist/${REPLAY_PLAYLIST_ID}`  // production
-  const url = `http://localhost:8080/api/playlist/${REPLAY_PLAYLIST_ID}`  // dev
+  const url = `/api/playlist/${REPLAY_PLAYLIST_ID}`  // production
+  // const url = `http://localhost:8080/api/playlist/${REPLAY_PLAYLIST_ID}`  // dev
   const { data } = await axios.get(url, { params: { maxResults: 25 } })
   replayItems.value = Array.isArray(data) ? data : []
 }

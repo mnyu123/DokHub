@@ -54,11 +54,18 @@ const props = defineProps({ selectedTab: String })
 const sliderClips = ref([])
 
 async function fetchSliderClips() {
+  /*
   // 일주일 새 올라온 카테고리=clip 채널 7개 호출
   const { data } = await axios.get(
     `http://localhost:8080/api/channels/clip`,
     { params: { page: 0, size: 7 } }
-  )
+  )  */
+    // 일주일 새 올라온 카테고리=clip 채널 7개 호출
+    // API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
+    const url = `/api/channels/clip`  // production
+    // const url = `http://localhost:8080/api/channels/clip`  // dev
+    const { data } = await axios.get(url, { params: { page: 0, size: 7 } })
+    
   // 각 채널의 첫번째 recentVideos만 뽑기
   sliderClips.value = data
     .map(c => {
