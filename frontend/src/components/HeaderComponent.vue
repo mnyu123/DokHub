@@ -10,7 +10,7 @@
 
     <!-- 로고 (클릭하면 전체 리로드) -->
     <!-- 개발 중 -->
-    <a href="http://localhost:3000" class="flex items-center gap-2">
+    <a href="https://dokhub.site/" class="flex items-center gap-2">
       <img src="@/assets/dokhublogo.png" class="h-8 w-auto logo-anim" />
       <span class="text-xl font-bold">독허브</span>
     </a>
