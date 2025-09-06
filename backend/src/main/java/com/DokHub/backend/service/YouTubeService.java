@@ -30,6 +30,9 @@ public class YouTubeService {
     private final ConcurrentHashMap<String, List<VideoInfoDto>> recentVideosCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> thumbnailsCache = new ConcurrentHashMap<>();
 
+    // 2025-09-06 : 플레이리스트 관리용 map 추가
+    private final ConcurrentHashMap<String, List<VideoInfoDto>> playlistItemsCache = new ConcurrentHashMap<>();
+
     /**
      * 생성자에서는 properties 파일에 설정된 API 키 문자열(콤마 구분)을 받아 List로 변환합니다.
      */
@@ -226,13 +229,95 @@ public class YouTubeService {
     }
 
     /**
+     * 재생목록 아이템(최대 50) 캐시 우선 반환
+     */
+    public List<VideoInfoDto> getPlaylistItemsCached(String playlistId, int maxResults) {
+        String key = playlistId + ":" + maxResults;
+        if (playlistItemsCache.containsKey(key)) {
+            return playlistItemsCache.get(key);
+        }
+        List<VideoInfoDto> items = getPlaylistItems(playlistId, maxResults);
+        playlistItemsCache.put(key, items);
+        return items;
+    }
+
+    /**
+     * 유튜브 재생목록 전용으로 만든 서비스
+     */
+    @Cacheable(value = "youtubePlaylistItems", key = "#playlistId + ':' + #maxResults")
+    public List<VideoInfoDto> getPlaylistItems(String playlistId, int maxResults) {
+        if (playlistId == null || playlistId.isBlank()) return Collections.emptyList();
+        int clamped = Math.max(1, Math.min(maxResults, 50));
+        String url = "https://www.googleapis.com/youtube/v3/playlistItems"
+                + "?part=snippet"
+                + "&playlistId=" + playlistId
+                + "&maxResults=" + clamped
+                + "&key=" + getCurrentApiKey();
+        try {
+            com.DokHub.backend.dto.YouTubePlaylistItemsResponse resp =
+                    restTemplate.getForObject(url, com.DokHub.backend.dto.YouTubePlaylistItemsResponse.class);
+            if (resp == null || resp.getItems() == null) return Collections.emptyList();
+            return resp.getItems().stream()
+                    .map(it -> {
+                        var sn = it.getSnippet();
+                        String vid = (sn != null && sn.getResourceId() != null) ? sn.getResourceId().getVideoId() : null;
+                        String title = (sn != null) ? sn.getTitle() : null;
+                        String thumb = (sn != null && sn.getThumbnails() != null && sn.getThumbnails().getDefaultThumbnail() != null)
+                                ? sn.getThumbnails().getDefaultThumbnail().getUrl() : "";
+                        return new VideoInfoDto(
+                                vid,
+                                title,
+                                parsePublishedAt(sn != null ? sn.getPublishedAt() : null),
+                                thumb
+                        );
+                    })
+                    .filter(v -> v.getVideoId() != null && !v.getVideoId().isBlank())
+                    .collect(Collectors.toList());
+        } catch (org.springframework.web.client.RestClientException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("quota")) {
+                switchToNextApiKey();
+                try {
+                    url = "https://www.googleapis.com/youtube/v3/playlistItems"
+                            + "?part=snippet"
+                            + "&playlistId=" + playlistId
+                            + "&maxResults=" + clamped
+                            + "&key=" + getCurrentApiKey();
+                    var resp = restTemplate.getForObject(url, com.DokHub.backend.dto.YouTubePlaylistItemsResponse.class);
+                    if (resp == null || resp.getItems() == null) return Collections.emptyList();
+                    return resp.getItems().stream()
+                            .map(it -> {
+                                var sn = it.getSnippet();
+                                String vid = (sn != null && sn.getResourceId() != null) ? sn.getResourceId().getVideoId() : null;
+                                String title = (sn != null) ? sn.getTitle() : null;
+                                String thumb = (sn != null && sn.getThumbnails() != null && sn.getThumbnails().getDefaultThumbnail() != null)
+                                        ? sn.getThumbnails().getDefaultThumbnail().getUrl() : "";
+                                return new VideoInfoDto(
+                                        vid,
+                                        title,
+                                        parsePublishedAt(sn != null ? sn.getPublishedAt() : null),
+                                        thumb
+                                );
+                            })
+                            .filter(v -> v.getVideoId() != null && !v.getVideoId().isBlank())
+                            .collect(Collectors.toList());
+                } catch (Exception ignore) {
+                    return Collections.emptyList();
+                }
+            }
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * 주기적으로 전체 캐시를 갱신(무효화)하는 스케줄 메서드 (6시간마다 실행)
      */
     @Scheduled(fixedRate = 21600000) // 6시간 마다 실행
-    @CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch"}, allEntries = true)
+    //@CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch"}, allEntries = true)
+    @CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch", "youtubePlaylistItems"}, allEntries = true)
     public void refreshCache() {
         recentVideosCache.clear();
         thumbnailsCache.clear();
+        playlistItemsCache.clear(); // 재생목록 캐시 비우기 추가
         System.out.println("[DOKHUB] : 6시간 스케줄러가 실행됩니다.");
     }
 
