@@ -1,3 +1,4 @@
+// jsconfig.json
 {
   "compilerOptions": {
     "target": "es5",
@@ -7,12 +8,10 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable",
-      "scripthost"
-    ]
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
+    // ↓ 자동 타입 끌 때
+    "types": []              //   ⬅︎ node_modules/@types/* 불러오지 않음
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]   // ⬅︎ 꼭 추가
 }

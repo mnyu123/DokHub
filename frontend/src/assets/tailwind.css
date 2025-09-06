@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 공통 애니메이션 · 컴포넌트 확장 */
+@layer components {
+  .fade-in   { @apply animate-fadeIn; }
+  .slide-up  { @apply animate-slideUp; }
+}
+
+/* 이미지 크기 제한 */
+@layer utilities {
+  .img-fixed { @apply w-full h-auto object-cover max-h-48; }
+}

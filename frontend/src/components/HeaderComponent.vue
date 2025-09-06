@@ -1,89 +1,61 @@
+<!-- src/components/HeaderComponent.vue -->
 <template>
-  <header :class="[headerClass, 'p-3', 'mb-3', 'd-flex', 'align-items-center', 'justify-content-between']">
-    <a href="/" class="d-flex align-items-center text-decoration-none">
-      <img
-        src="@/assets/dokhublogo.png"
-        alt="독허브 로고"
-        style="max-height: 80px;"
-        class="img-fluid me-3 logo-anim"
-      />
-      <div class="header-text">
-        <h1 class="main-title m-0">독 허 브</h1>
-        <p class="sub-title m-0">- 개떡이들을 위한 독케익 모아보기 사이트</p>
-      </div>
+  <header
+    class="navbar bg-base-100 shadow-md px-6 flex items-center justify-between overflow-visible"
+  >
+    <!-- 햄버거 토글 (작게) -->
+    <label for="drawer-left" class="btn btn-ghost lg:hidden p-2 mr-4">
+      <i class="fa-solid fa-bars text-xl"></i>
+    </label>
+
+    <!-- 로고 (클릭하면 전체 리로드) -->
+    <!-- 개발 중 -->
+    <a href="http://localhost:3000" class="flex items-center gap-2">
+      <img src="@/assets/dokhublogo.png" class="h-8 w-auto logo-anim" />
+      <span class="text-xl font-bold">독허브</span>
     </a>
-    <div class="header-buttons">
-      <!-- 독채팅 버튼 경로 변경 -->
-      <button class="btn chat-btn" @click="goToChat">독채팅(Beta)</button>
-      <button class="btn theme-btn" @click="$emit('toggle-theme')">
-        {{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}
-      </button>
+    <!-- 배포 시 -->
+    <!--
+    <a href="/" class="flex items-center gap-2">
+      <img src="@/assets/dokhublogo.png" class="h-8 w-auto logo-anim" />
+      <span class="text-xl font-bold">독허브</span>
+    </a>
+    -->
+
+    <!-- 가운데 빈 공간 확보 -->
+    <div class="flex-1"></div>
+
+    <!-- 우측: 업데이트 호버 영역 -->
+    <div
+      class="relative"
+      @mouseenter="hover = true"
+      @mouseleave="hover = false"
+    >
+      <span class="text-sm font-medium cursor-pointer hover:text-primary">
+        업데이트
+      </span>
+
+      <!-- hover 시에만 보이는 팝업 -->
+      <div
+        v-if="hover"
+        class="absolute right-0 top-full mt-2 w-64 bg-white text-gray-800 p-4 rounded-lg shadow-lg z-50"
+      >
+        <h3 class="font-semibold mb-2">1.0 업데이트</h3>
+        <ul class="list-disc list-inside text-sm space-y-1">
+          <li>클립 제공화면 변경</li>
+          <li>바로가기 아이콘 추가</li>
+          <li>독채팅 아이콘 위치변경</li>
+          <li>클립 정렬방식 변경</li>
+        </ul>
+      </div>
     </div>
   </header>
 </template>
 
-<script>
-import router from '@/router'; 
-export default {
-  name: "HeaderComponent",
-  props: {
-    theme: {
-      type: String,
-      required: true,
-    },
-  },
-  computed: {
-    headerClass() {
-      return this.theme === "dark" ? "custom-header-dark" : "bg-light";
-    },
-  },
-  methods: {
-  goToChat() {
-    // 프론트엔드 라우터 경로로 이동
-    router.push('/chat/dokchat');
-  },
-},
-};
-</script>
+<script setup>
+import { ref } from 'vue'
+defineProps({ theme: String })
 
-<style scoped>
-.custom-header-dark {
-  background-color: #141414;
-}
-.header-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.main-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-}
-.sub-title {
-  font-size: 1rem;
-  color: #ccc;
-  margin-top: -5px;
-}
-.header-buttons {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.chat-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  font-weight: bold;
-  cursor: pointer;
-}
-.chat-btn:hover {
-  text-decoration: underline;
-}
-.logo-anim {
-  animation: fadeIn 1s ease-in-out;
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-</style>
+// hover 상태 관리
+const hover = ref(false)
+</script>
