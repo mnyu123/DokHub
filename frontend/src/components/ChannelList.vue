@@ -6,6 +6,8 @@
     </div>
 
     <div v-else>
+      <!-- 페이지네이션 시 스크롤 기준점 -->
+       <div ref="gridTopRef" class="h-0"></div>
       <!-- 1) replay 탭을 제외한 모든 탭에서: 클립 그리드 -->
       <div v-if="isGridMode" class="mt-8">
         <h2 class="text-4xl font-bold text-white mb-6">최신 클립 목록</h2>
@@ -103,6 +105,7 @@ import axios from 'axios'
 import defaultImg from '@/assets/doksame3.gif'
 
 const props       = defineProps({ selectedTab: String })
+const gridTopRef  = ref(null) // ← 스크롤 기준 ref 추가
 const allChannels = ref([])
 const totalCount  = ref(0)
 // ▼ replay 재생목록 아이템 (백엔드에서 받아옴)
@@ -196,12 +199,12 @@ const isNextDisabled = computed(() =>
 /* eslint-disable-next-line no-unused-vars */
 async function fetchTotalCount() {
   const url = `/api/channels/${props.selectedTab}/totalCount`  // production
-  // const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
+  //const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
   totalCount.value = (await axios.get(url)).data
 }
 async function fetchChannels() {
   const url = `/api/channels/${props.selectedTab}`  // production
-  // const url = `http://localhost:8080/api/channels/${props.selectedTab}`  // dev
+  //const url = `http://localhost:8080/api/channels/${props.selectedTab}`  // dev
   allChannels.value = (await axios.get(url, {
     params: { page: channelPage.value, size }
   })).data
@@ -210,7 +213,7 @@ async function fetchChannels() {
 // API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
 async function fetchPlaylistItems() {
   const url = `/api/playlist/${REPLAY_PLAYLIST_ID}`  // production
-  // const url = `http://localhost:8080/api/playlist/${REPLAY_PLAYLIST_ID}`  // dev
+  //const url = `http://localhost:8080/api/playlist/${REPLAY_PLAYLIST_ID}`  // dev
   const { data } = await axios.get(url, { params: { maxResults: 25 } })
   replayItems.value = Array.isArray(data) ? data : []
 }
@@ -249,7 +252,8 @@ function prevPage() {
     channelPage.value--
     loadChannelData()
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  //window.scrollTo({ top: 0, behavior: 'smooth' }) // 상단이동 금지
+  gridTopRef?.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 function nextPage() {
   if (isGridMode.value && clipPage.value < maxPage.value - 1) {
@@ -258,7 +262,8 @@ function nextPage() {
     channelPage.value++
     loadChannelData()
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  //window.scrollTo({ top: 0, behavior: 'smooth' }) // 상단이동 금지
+  gridTopRef?.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // 썸네일 고해상도 변환
