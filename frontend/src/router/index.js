@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '@/components/HomePage.vue';
 import ChatPage from '@/components/ChatPage.vue';
+import TermsPage from '@/components/TermsPage.vue';
+import PrivacyPage from '@/components/PrivacyPage.vue';
 
 const routes = [
   {
@@ -13,6 +15,16 @@ const routes = [
     path: '/chat/dokchat',
     name: 'ChatPage',
     component: ChatPage,
+  },  
+  {
+    path: '/terms-of-use',
+    name: 'TermsPage',
+    component: TermsPage,
+  },
+  {
+    path: '/privacy-policy',
+    name: 'PrivacyPage',
+    component: PrivacyPage,
   },
 ];
 
