@@ -116,7 +116,7 @@ const channelPlaylistsUrl = 'https://www.youtube.com/@%EC%A7%AD%EC%BC%80%EC%9D%B
 const loading     = ref(true)
 const channelPage = ref(0)
 const clipPage    = ref(0)
-const size        = 11             // size를 늘리면 더 많이 보여주는데 일단 9에서 반응보자
+const size        = 12             // 이거 한 페이지당 클립개수다 - size를 늘리면 더 많이 보여주는데 일단 9에서 반응보자
 const skipCount = computed(() =>
    props.selectedTab === 'clip' ? 7 : 0
 )
