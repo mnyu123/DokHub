@@ -10,7 +10,7 @@
        <div ref="gridTopRef" class="h-0"></div>
       <!-- 1) replay 탭을 제외한 모든 탭에서: 클립 그리드 -->
       <div v-if="isGridMode" class="mt-8">
-        <h2 class="text-4xl font-bold text-white mb-6">최신 클립 목록</h2>
+        <h2 class="text-4xl font-bold text-white mb-6">클립</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           <div
             v-for="clip in displayedClips"

@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 슬라이더 상단 제목 -->
-    <h2 class="text-4xl font-bold text-white mb-6">이번주 최신순 클립</h2>
+    <h2 class="text-4xl font-bold text-white mb-6">신규 클립</h2>
 
     <!-- 내비 버튼 가시성 강화를 위한 래퍼 -->
     <div class="clip-swiper group h-80 py-6">
