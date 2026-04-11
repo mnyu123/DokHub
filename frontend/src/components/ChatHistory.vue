@@ -16,7 +16,7 @@
     <div v-else class="flex flex-col gap-3 max-h-96 overflow-y-auto">
       <div v-for="(m,i) in messages" :key="i" class="chat chat-start">
         <div class="chat-header">독케익</div>
-        <div class="chat-bubble">{{ m }}</div>
+        <div class="chat-bubble" v-html="m"></div>
       </div>
 
       <!-- 안내 -->
@@ -39,11 +39,19 @@ const loading       = ref(true);
 const refreshCount  = ref(0);
 const refreshLimit  = 5;
 
+// 추가: HTML 엔티티(&lt; 등)를 실제 꺾쇠(<)로 되돌리는 함수 ✨
+function decodeHtml(html) {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+}
+
 async function fetchChat(){
   loading.value = true;
   try{
     const { data } = await axios.get('/api/chat/history');
-    messages.value = data;
+    //messages.value = data;
+    messages.value = data.map(msg => decodeHtml(msg));
   }catch(e){ console.error(e);}
   finally{ loading.value=false; }
 }

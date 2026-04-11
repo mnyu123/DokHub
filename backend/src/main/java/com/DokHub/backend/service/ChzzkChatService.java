@@ -1,5 +1,7 @@
 package com.DokHub.backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +14,9 @@ import xyz.r2turntrue.chzzk4j.chat.*;
 import xyz.r2turntrue.chzzk4j.chat.event.*;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 @Slf4j
@@ -29,6 +33,8 @@ public class ChzzkChatService {
     @Value("${chzzk.nid.ses}")
     private String nidSes;
 
+    // 임시 테스트용 니니아 f00f6d46ecc6d735b96ecf376b9e5212
+    // 독케익 채널 아이디 b68af124ae2f1743a1dcbf5e2ab41e0b
     private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
     private static final String TARGET_USER_NICKNAME = "독케익";
     private static final String TARGET_USER_TEST = "쇼츠유입";
@@ -42,6 +48,11 @@ public class ChzzkChatService {
 
     private final ScheduledExecutorService scheduler =
             Executors.newSingleThreadScheduledExecutor();
+
+    // 실제 웹소켓 연결 상태를 추적하기 위한 변수
+    private boolean isChatConnected = false;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /* ────── 초기 설정 ────── */
 
@@ -87,20 +98,57 @@ public class ChzzkChatService {
         c.on(ChatMessageEvent.class, evt -> {
             ChatMessage msg = evt.getMessage();
             if (msg.getProfile() == null) return;
-            // 독케익 채팅 전용 루트
-            if (TARGET_USER_NICKNAME.equals(msg.getProfile().getNickname())) {
+
+            String nickname = msg.getProfile().getNickname();
+
+            // 1. 수집 대상(독케익 또는 테스트계정)인지 확인
+            if (TARGET_USER_NICKNAME.equals(nickname) || TARGET_USER_TEST.equals(nickname)) {
+
+                // 원본 텍스트 가져오기
                 String text = msg.getContent();
-                if (!chatHistory.contains(text)) {          // ← 중복이면 채팅 스킵(왠만하면 그럴일 없긴한데)
-                    chatHistory.add(text);
+
+                // 2. 이모지 파싱 및 치환 로직 (공통 적용)
+                try {
+                    String rawJson = msg.getRawJson();
+
+                    if (rawJson != null) {
+                        JsonNode rootNode = objectMapper.readTree(rawJson);
+                        JsonNode extrasNode = rootNode.path("extras");
+
+                        if (extrasNode.isTextual()) {
+                            extrasNode = objectMapper.readTree(extrasNode.asText());
+                        }
+
+                        JsonNode emojisNode = extrasNode.path("emojis");
+
+                        if (!emojisNode.isMissingNode() && emojisNode.isObject()) {
+                            Iterator<Map.Entry<String, JsonNode>> fields = emojisNode.fields();
+
+                            while (fields.hasNext()) {
+                                Map.Entry<String, JsonNode> field = fields.next();
+                                String code = field.getKey();
+                                String imageUrl = field.getValue().asText();
+
+                                String target = "{:" + code + ":}";
+                                String imgTag = "<img src='" + imageUrl + "' alt='" + code + "' style='width:24px; height:24px; display:inline-block; vertical-align:middle;' />";
+
+                                text = text.replace(target, imgTag);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("[DOKHUB] 이모지 파싱 중 에러 발생", e);
+                }
+
+                // 3. 이모지가 치환된 최종 텍스트를 프론트엔드 전송용 리스트에 추가
+                chatHistory.add(text);
+
+                // 4. 로그 출력 분기 (콘솔 확인용)
+                if (TARGET_USER_NICKNAME.equals(nickname)) {
                     log.info("[CHAT] {}: {}", TARGET_USER_NICKNAME, text);
                 } else {
-                    log.info("[DOKHUB] : 독케익 채팅이 중복됐음....");
+                    log.info("[CHAT TEST] {}: {}", TARGET_USER_TESTNAME, text);
                 }
-            }
-            // 테스트용 수집
-            if (TARGET_USER_TEST.equals(msg.getProfile().getNickname())) {
-                // chatHistory.add(msg.getContent()); // 굳이 안보내도 됨
-                log.info("[CHAT TEST] {}: {}", TARGET_USER_TESTNAME, msg.getContent());
             }
         });
 
@@ -131,6 +179,41 @@ public class ChzzkChatService {
         } catch (Exception e) {
             log.error("[DOKHUB] 쿠키 재발급·재연결 실패, 30초 뒤 재시도", e);
             scheduler.schedule(this::refreshCookiesAndReconnect, 30, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * 주기적으로(또는 라이브 상태가 변경될 때) 호출되는 방어 로직
+     */
+    public void ensureChatConnection(boolean isCurrentlyLive) {
+        if (isCurrentlyLive) {
+            // 방송이 켜져 있는데 연결이 유실된 경우 (이벤트 핸들러에서 상태 갱신됨)
+            if (chat == null || !isChatConnected) {
+                log.info("[DOKHUB] 방송(ON-AIR) 중이나 채팅 세션이 끊어져 있습니다. 재연결을 시도합니다.");
+
+                try {
+                    if (chat != null) {
+                        chat.connectAsync();
+                    } else {
+                        // 객체 자체가 없어진 경우 기존 레거시 초기화 함수 재사용
+                        createClientAndChat(nidAut, nidSes);
+                        chat.connectAsync();
+                    }
+                } catch (Exception e) {
+                    log.error("[DOKHUB-CHAT] 채팅 재연결 실패", e);
+                }
+            }
+        } else {
+            // 방송이 꺼져 있는데 연결이 유지되고 있는 경우 안전하게 자원 해제
+            if (chat != null && isChatConnected) {
+                log.info("[DOKHUB] 방송이 종료되었습니다. 기존 채팅 세션을 안전하게 종료합니다.");
+                try {
+                    chat.closeAsync();
+                } catch (Exception e) {
+                    log.error("[DOKHUB-CHAT] 채팅 세션 종료 실패", e);
+                }
+                isChatConnected = false;
+            }
         }
     }
 }
