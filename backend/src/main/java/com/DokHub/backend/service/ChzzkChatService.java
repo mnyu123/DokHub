@@ -144,12 +144,15 @@ public class ChzzkChatService {
                 }
 
                 // 3. 이모지가 치환된 최종 텍스트를 프론트엔드 전송용 리스트에 추가
-                chatHistory.add(text);
+                //chatHistory.add(text);
 
                 // 4. 로그 출력 분기 (콘솔 확인용)
                 if (TARGET_USER_NICKNAME.equals(nickname)) {
+                    // 운영용(독케익): 프론트엔드로 전달할 리스트에 추가하고 로그 출력
+                    chatHistory.add(text);
                     log.info("[CHAT] {}: {}", TARGET_USER_NICKNAME, text);
                 } else {
+                    // 테스트용(쇼츠유입): 리스트에는 추가하지 않고 오직 서버 로그만 출력 (화면 노출 X)
                     log.info("[CHAT TEST] {}: {}", TARGET_USER_TESTNAME, text);
                 }
             }
@@ -195,7 +198,7 @@ public class ChzzkChatService {
                 log.info("[DOKHUB] 방송(ON-AIR) 중이나 채팅 세션이 끊어져 있습니다. 기존 객체를 파기하고 새 소켓으로 재연결합니다.");
 
                 try {
-                    // 🔥 수정된 부분: 죽은 chat 객체에 connectAsync()를 호출하지 않고, 무조건 아예 새로 만듭니다.
+                    // 죽은 chat 객체에 connectAsync()를 호출하지 않고, 무조건 아예 새로 만듭니다.
                     createClientAndChat(nidAut, nidSes);
                     chat.connectAsync();
                 } catch (Exception e) {
