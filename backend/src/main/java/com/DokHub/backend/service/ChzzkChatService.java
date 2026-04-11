@@ -189,16 +189,12 @@ public class ChzzkChatService {
         if (isCurrentlyLive) {
             // 방송이 켜져 있는데 연결이 유실된 경우 (이벤트 핸들러에서 상태 갱신됨)
             if (chat == null || !isChatConnected) {
-                log.info("[DOKHUB] 방송(ON-AIR) 중이나 채팅 세션이 끊어져 있습니다. 재연결을 시도합니다.");
+                log.info("[DOKHUB] 방송(ON-AIR) 중이나 채팅 세션이 끊어져 있습니다. 기존 객체를 파기하고 새 소켓으로 재연결합니다.");
 
                 try {
-                    if (chat != null) {
-                        chat.connectAsync();
-                    } else {
-                        // 객체 자체가 없어진 경우 기존 레거시 초기화 함수 재사용
-                        createClientAndChat(nidAut, nidSes);
-                        chat.connectAsync();
-                    }
+                    // 🔥 수정된 부분: 죽은 chat 객체에 connectAsync()를 호출하지 않고, 무조건 아예 새로 만듭니다.
+                    createClientAndChat(nidAut, nidSes);
+                    chat.connectAsync();
                 } catch (Exception e) {
                     log.error("[DOKHUB-CHAT] 채팅 재연결 실패", e);
                 }
