@@ -67,7 +67,10 @@ public class ChzzkChatService {
     /* ────── 클라이언트+채팅 재생성 ────── */
     private void createClientAndChat(String aut, String ses) {
         try {
-            if (chat != null) chat.closeAsync();
+            if (chat != null) {
+                chat.closeAsync();
+                isChatConnected = false; // 확실한 초기화
+            }
 
             var adapter = new ChzzkLegacyLoginAdapter(aut, ses);
             client = new ChzzkClientBuilder(apiClientId, apiSecret)
@@ -89,8 +92,8 @@ public class ChzzkChatService {
 
         /* 연결 */
         c.on(ConnectEvent.class, evt -> {
+            isChatConnected = true;
             log.info("[DOKHUB] 채팅 소켓 연결 | 최근 채팅 50개 요청 (재연결 여부 확인 : {})", evt.isReconnecting());
-            /* 재연결 여부와 관계없이 매번 50개 요청 */
             c.requestRecentChat(50);
         });
 
@@ -154,6 +157,7 @@ public class ChzzkChatService {
 
         /* 끊김 */
         c.on(ConnectionClosedEvent.class, evt -> {
+            isChatConnected = false; // 🔥 이거 반드시 추가해야 합니다! 🔥
             int code = evt.getCode();
             log.warn("[DOKHUB] 소켓 종료(code={}, reason={})", code, evt.getReason());
 
@@ -161,7 +165,6 @@ public class ChzzkChatService {
                 log.warn("[DOKHUB] 4003 – 쿠키 재생성 시도");
                 scheduler.schedule(this::refreshCookiesAndReconnect, 1, TimeUnit.SECONDS);
             }
-            /* 그 외는 라이브러리 기본 재연결에 맡김 */
         });
     }
 
