@@ -33,6 +33,9 @@ public class YouTubeService {
     // 2025-09-06 : 플레이리스트 관리용 map 추가
     private final ConcurrentHashMap<String, List<VideoInfoDto>> playlistItemsCache = new ConcurrentHashMap<>();
 
+    // 2026-04-14 : 독케익 다시보기 플레이리스트 관리용 map 추가
+    private final ConcurrentHashMap<String, List<VideoInfoDto>> channelVideosCache = new ConcurrentHashMap<>();
+
     /**
      * 생성자에서는 properties 파일에 설정된 API 키 문자열(콤마 구분)을 받아 List로 변환합니다.
      */
@@ -229,6 +232,67 @@ public class YouTubeService {
     }
 
     /**
+     * 실제 YouTube API를 호출하여 독케익 다시보기 목록을 가져오는 메소드
+     */
+    private List<VideoInfoDto> fetchChannelVideosFromApi(String channelId, int maxResults) {
+        String url = "https://www.googleapis.com/youtube/v3/search"
+                + "?part=snippet"
+                + "&channelId=" + channelId
+                + "&maxResults=" + maxResults
+                + "&order=date"
+                + "&type=video"
+                + "&key=" + getCurrentApiKey();
+
+        try {
+            YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
+            if (response == null || response.getItems() == null) {
+                return Collections.emptyList();
+            }
+
+            return response.getItems().stream()
+                    .map(item -> new VideoInfoDto(
+                            item.getId().getVideoId(),
+                            item.getSnippet().getTitle(),
+                            LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
+                            item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
+                    ))
+                    .collect(Collectors.toList());
+
+        } catch (RestClientException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("quota")) {
+                switchToNextApiKey();
+                try {
+                    url = "https://www.googleapis.com/youtube/v3/search"
+                            + "?part=snippet"
+                            + "&channelId=" + channelId
+                            + "&maxResults=" + maxResults
+                            + "&order=date"
+                            + "&type=video"
+                            + "&key=" + getCurrentApiKey();
+
+                    YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
+                    if (response == null || response.getItems() == null) {
+                        return Collections.emptyList();
+                    }
+
+                    return response.getItems().stream()
+                            .map(item -> new VideoInfoDto(
+                                    item.getId().getVideoId(),
+                                    item.getSnippet().getTitle(),
+                                    LocalDateTime.parse(item.getSnippet().getPublishedAt(), DateTimeFormatter.ISO_DATE_TIME),
+                                    item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
+                            ))
+                            .collect(Collectors.toList());
+
+                } catch (Exception ex) {
+                    return Collections.emptyList();
+                }
+            }
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * 재생목록 아이템(최대 50) 캐시 우선 반환
      */
     public List<VideoInfoDto> getPlaylistItemsCached(String playlistId, int maxResults) {
@@ -239,6 +303,31 @@ public class YouTubeService {
         List<VideoInfoDto> items = getPlaylistItems(playlistId, maxResults);
         playlistItemsCache.put(key, items);
         return items;
+    }
+
+    /**
+     * 유튜브 독케익 다시보기 전용으로 다시 만든 서비스 2026.04.14
+     */
+    public List<VideoInfoDto> getChannelVideosCached(String channelId, int maxResults) {
+        String key = channelId + ":" + maxResults;
+        if (channelVideosCache.containsKey(key)) {
+            return channelVideosCache.get(key);
+        }
+        List<VideoInfoDto> items = getChannelVideos(channelId, maxResults);
+        channelVideosCache.put(key, items);
+        return items;
+    }
+
+    @Cacheable(value = "youtubeChannelVideos", key = "#channelId + ':' + #maxResults")
+    public List<VideoInfoDto> getChannelVideos(String channelId, int maxResults) {
+        if (channelId == null || channelId.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        int clamped = Math.max(1, Math.min(maxResults, 25));
+        List<VideoInfoDto> videos = fetchChannelVideosFromApi(channelId, clamped);
+        channelVideosCache.put(channelId + ":" + clamped, videos);
+        return videos;
     }
 
     /**
@@ -318,6 +407,7 @@ public class YouTubeService {
         recentVideosCache.clear();
         thumbnailsCache.clear();
         playlistItemsCache.clear(); // 재생목록 캐시 비우기 추가
+        channelVideosCache.clear(); // 독케익 다시보기 캐시 비우기 추가
         System.out.println("[DOKHUB] : 6시간 스케줄러가 실행됩니다.");
     }
 
