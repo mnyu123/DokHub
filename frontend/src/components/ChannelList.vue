@@ -57,7 +57,7 @@
           class="card bg-base-100 shadow-md hover:shadow-lg transition"
         >
           <a
-            :href="`https://www.youtube.com/watch?v=${it.videoId}&list=${REPLAY_PLAYLIST_ID}`"
+            :href="`https://www.youtube.com/watch?v=${it.videoId}`"
             target="_blank"
             class="flex items-stretch"
           >
@@ -79,9 +79,9 @@
         <!-- 아이템이 없을 때: 채널 재생목록 페이지로 유도 -->
         <div v-if="!replayItems.length" class="text-center">
           <div class="alert alert-info my-4">
-            재생목록을 불러오지 못했습니다. 유튜브에서 직접 확인해 주세요.
+            채널 영상을 불러오지 못했습니다. [독케익다시보기] 유튜브 채널에서 직접 확인해 주세요.
           </div>
-          <a :href="channelPlaylistsUrl" target="_blank" class="btn btn-primary">유튜브 재생목록으로 이동</a>
+          <a :href="channelVideosUrl" target="_blank" class="btn btn-primary">유튜브 채널 영상으로 이동</a>
         </div>
       </div>
 
@@ -111,8 +111,8 @@ const totalCount  = ref(0)
 // ▼ replay 재생목록 아이템 (백엔드에서 받아옴)
 const replayItems = ref([])
 // ▼ 요청하신 플레이리스트 ID 고정 및 채널 재생목록 이동용 링크
-const REPLAY_PLAYLIST_ID  = 'PLJRYmIJL3iscMUMNM2KCk2GpGe0W_HAax'
-const channelPlaylistsUrl = 'https://www.youtube.com/@%EC%A7%AD%EC%BC%80%EC%9D%B5/playlists'
+const REPLAY_CHANNEL_ID = 'UCzdsBMcTdToWM4S72p49Dew'
+const channelVideosUrl = `https://www.youtube.com/channel/${REPLAY_CHANNEL_ID}/videos` // https://www.youtube.com/channel/UCJf5q7jtsBQW31ucEcXyRiQ/videos
 const loading     = ref(true)
 const channelPage = ref(0)
 const clipPage    = ref(0)
@@ -210,23 +210,12 @@ async function fetchChannels() {
   })).data
 }
 
-// API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
-async function fetchPlaylistItems() {
-  const url = `/api/playlist/${REPLAY_PLAYLIST_ID}`  // production
-  //const url = `http://localhost:8080/api/playlist/${REPLAY_PLAYLIST_ID}`  // dev
-  const { data } = await axios.get(url, { params: { maxResults: 25 } })
-  replayItems.value = Array.isArray(data) ? data : []
-}
-
-
 async function loadChannelData() {
   loading.value = true
   try {
     if (props.selectedTab === 'replay') {
-      // 재생목록을 백엔드에서 받아서 세로 목록으로 표시
-      //await Promise.all([fetchTotalCount(), fetchChannels()])
-      await fetchPlaylistItems()
-      totalCount.value = 0 // replay에선 페이징 미사용
+      await fetchReplayChannelVideos()
+      totalCount.value = 0
     } else {
       await fetchChannels()
       totalCount.value = 0
@@ -270,4 +259,12 @@ function nextPage() {
 function getHighRes(url) {
   return url.replace(/default\.jpg$/, 'maxresdefault.jpg')
 }
+
+// 다시보기 - 독케익 다시보기로 변경 
+async function fetchReplayChannelVideos() {
+  const url = `/api/channel-videos/${REPLAY_CHANNEL_ID}`
+  const { data } = await axios.get(url, { params: { maxResults: 25 } })
+  replayItems.value = Array.isArray(data) ? data : []
+}
+
 </script>
