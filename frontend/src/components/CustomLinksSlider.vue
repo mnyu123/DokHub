@@ -53,7 +53,7 @@ const fixedLinks = [
   },
   {
     href: 'https://cafe.naver.com/poisoncake',
-    imgSrc: require('@/assets/new_cafe_ico.jpg'),
+    imgSrc: require('@/assets/cafe512.png'),
     alt:    '개떡이 수용소(팬 카페)'
   },
   {
@@ -68,7 +68,7 @@ const fixedLinks = [
   },
   {
     href: 'https://www.youtube.com/@%EB%8F%85%EC%BC%80%EC%9D%B5%EC%9C%A0%ED%8A%9C%EB%B8%8C',
-    imgSrc: require('@/assets/youtube_ico.png'),
+    imgSrc: require('@/assets/yt1.png'),
     alt:    '독케익 유튜브'
   }
 ]
