@@ -1,37 +1,13 @@
-# flyctl launch added from .gitignore
-**\HELP.md
-!**\.mvn\wrapper\maven-wrapper.jar
+target
+.git
+.gitignore
 
-### STS ###
-**\.apt_generated
-**\.classpath
-**\.factorypath
-**\.project
-**\.settings
-**\.springBeans
-**\.sts4-cache
+.idea
+*.iml
+*.log
 
-### IntelliJ IDEA ###
-**\.idea
-**\*.iws
-**\*.iml
-**\*.ipr
+.env
+src/main/resources/.env
 
-### NetBeans ###
-nbproject\private
-nbbuild
-dist
-nbdist
-.nb-gradle
-**\build
-!**\**\src\main\**\build
-!**\**\src\test\**\build
-
-### VS Code ###
-**\.vscode
-
-# flyctl launch added from .idea\.gitignore
-# 디폴트 무시된 파일
-.idea\shelf
-.idea\workspace.xml
-fly.toml
+.DS_Store
+Thumbs.db
