@@ -1,11 +1,11 @@
 [build]
-  publish = "dist"     
+  publish = "dist"
 
 [[redirects]]
-from = "/api/*"
-to = "http://158.180.78.8:8080/api/:splat"
-status = 200
-force = true
+  from = "/api/*"
+  to = "https://dokhub-api.onrender.com/api/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
