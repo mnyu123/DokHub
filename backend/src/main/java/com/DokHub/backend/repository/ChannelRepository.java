@@ -15,4 +15,6 @@ public interface ChannelRepository extends JpaRepository<ChannelEntity, Long> {
     // 최신 업로드 시간을 기준으로 내림차순 정렬하여 페이징 처리(2025.02.16 사용)
     Page<ChannelEntity> findByCategoryIgnoreCaseOrderByLatestUploadDesc(String category, Pageable pageable);
 
+    long countByCategoryIgnoreCase(String category);
+
 }

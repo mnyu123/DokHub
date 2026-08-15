@@ -41,6 +41,6 @@ public class VideoClickLogEntity {
     @Column(name = "channel_id", length = 64)
     private String channelId;
 
-    @Column(name = "clicked_at", nullable = false)
+    @Column(name = "clicked_at", nullable = false, columnDefinition = "datetime(6)")
     private LocalDateTime clickedAt;
 }

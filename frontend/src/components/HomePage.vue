@@ -3,11 +3,22 @@
     <TabNavigation :selectedTab="selectedTab" @update:tab="selectedTab=$event" />
     <LiveStatus class="my-6" />
 
-    <ChannelSlider :selectedTab="selectedTab" />
+    <ChannelSlider @loaded-video-ids="sliderVideoIds = $event" />
 
     <CustomLinksSlider />
 
-    <ChannelList :selectedTab="selectedTab" :key="selectedTab" />
+    <ClickAnalyticsCard />
+
+    <AiChannelSummaryCard
+      v-if="selectedTab !== 'replay'"
+      :category="selectedTab"
+    />
+
+    <ChannelList
+      :selectedTab="selectedTab"
+      :excludedVideoIds="selectedTab === 'clip' ? sliderVideoIds : []"
+      :key="selectedTab"
+    />
   </div>
 </template>
 
@@ -17,7 +28,10 @@ import TabNavigation      from './TabNavigation.vue'
 import LiveStatus         from './LiveStatus.vue'
 import ChannelSlider      from './ChannelSlider.vue'
 import CustomLinksSlider  from './CustomLinksSlider.vue'
+import ClickAnalyticsCard from './ClickAnalyticsCard.vue'
 import ChannelList        from './ChannelList.vue'
+import AiChannelSummaryCard from './AiChannelSummaryCard.vue'
 
 const selectedTab = ref('clip')
+const sliderVideoIds = ref([])
 </script>

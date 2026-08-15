@@ -5,6 +5,7 @@ import com.DokHub.backend.dto.VideoInfoDto;
 import com.DokHub.backend.entity.ChannelEntity;
 import com.DokHub.backend.repository.ChannelRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ public class AiChannelSummaryService {
         this.youTubeService = youTubeService;
     }
 
+    @Cacheable(value = "aiChannelSummary", key = "#category + ':' + #periodDays")
     public AiChannelSummaryResponse buildSummary(String category, int periodDays) {
         int safePeriodDays = Math.max(1, Math.min(periodDays, 30));
 
@@ -35,7 +37,8 @@ public class AiChannelSummaryService {
         List<ChannelStat> channelStats = new ArrayList<>();
 
         for (ChannelEntity channel : channels) {
-            List<VideoInfoDto> recentVideos = youTubeService.getRecentVideosCached(channel.getChannelId());
+            // 기간 통계가 채널당 3개로 잘리지 않도록 최대 25개의 최근 영상을 사용합니다.
+            List<VideoInfoDto> recentVideos = youTubeService.getChannelVideosCached(channel.getChannelId(), 25);
             if (recentVideos == null) {
                 recentVideos = new ArrayList<>();
             }

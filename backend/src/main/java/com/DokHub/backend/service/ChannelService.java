@@ -52,6 +52,9 @@ public class ChannelService {
         // 2) 배치로 썸네일 한 번에 가져오기 (YouTube API 호출 1회)
         List<String> channelIds = entities.stream()
                 .map(ChannelEntity::getChannelId)
+                .filter(Objects::nonNull)
+                .filter(channelId -> !channelId.isBlank())
+                .distinct()
                 .toList();
         Map<String,String> thumbnailMap = youTubeService.getChannelThumbnailsBatch(channelIds);
 
@@ -76,9 +79,7 @@ public class ChannelService {
      * 총 채널 수
      */
     public int getTotalCount(String category) {
-        return (int) channelRepository
-                .findByCategoryIgnoreCaseOrderByLatestUploadDesc(category, PageRequest.of(0, Integer.MAX_VALUE))
-                .getTotalElements();
+        return Math.toIntExact(channelRepository.countByCategoryIgnoreCase(category));
     }
 
     /**

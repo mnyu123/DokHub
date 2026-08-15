@@ -20,7 +20,9 @@
             <a
               :href="`https://youtu.be/${clip.videoId}`"
               target="_blank"
+              rel="noopener noreferrer"
               class="block"
+              @click="trackVideoClick(clip, props.selectedTab)"
             >
               <img
                 :src="getHighRes(clip.thumbnailUrl)"
@@ -32,12 +34,17 @@
             <div class="px-4 pt-3 pb-4">
               <a
                 :href="`https://youtu.be/${clip.videoId}`"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="font-semibold truncate block hover:text-primary hover:underline"
+                @click="trackVideoClick(clip, props.selectedTab)"
               >
                 {{ clip.videoTitle }}
               </a>
               <a
                 :href="clip.channelLink"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="text-sm text-gray-500 mt-2 block hover:text-primary hover:underline"
               >
                 {{ clip.channelName }}
@@ -59,7 +66,14 @@
           <a
             :href="`https://www.youtube.com/watch?v=${it.videoId}`"
             target="_blank"
+            rel="noopener noreferrer"
             class="flex items-stretch"
+            @click="trackVideoClick({
+    videoId: it.videoId,
+    videoTitle: it.videoTitle,
+    channelName: '독케익 다시보기',
+    channelId: REPLAY_CHANNEL_ID
+  }, 'replay')"
           >
             <img
               :src="getHighRes(it.thumbnailUrl)"
@@ -81,7 +95,7 @@
           <div class="alert alert-info my-4">
             채널 영상을 불러오지 못했습니다. [독케익다시보기] 유튜브 채널에서 직접 확인해 주세요.
           </div>
-          <a :href="channelVideosUrl" target="_blank" class="btn btn-primary">유튜브 채널 영상으로 이동</a>
+          <a :href="channelVideosUrl" target="_blank" rel="noopener noreferrer" class="btn btn-primary">유튜브 채널 영상으로 이동</a>
         </div>
       </div>
 
@@ -90,7 +104,7 @@
         <button class="btn btn-sm" @click="prevPage" :disabled="isPrevDisabled">
           이전
         </button>
-        <span class="text-lg font-medium">{{ currentPage }} / {{ maxPage }}</span>
+        <span class="text-lg font-medium">페이지 {{ currentPage }}</span>
         <button class="btn btn-sm" @click="nextPage" :disabled="isNextDisabled">
           다음
         </button>
@@ -100,114 +114,74 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import axios from 'axios'
-import defaultImg from '@/assets/doksame3.gif'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import api from '@/api'
+import defaultImg from '@/assets/default_thumbnail.svg'
 
-const props       = defineProps({ selectedTab: String })
-const gridTopRef  = ref(null) // ← 스크롤 기준 ref 추가
-const allChannels = ref([])
-const totalCount  = ref(0)
-// ▼ replay 재생목록 아이템 (백엔드에서 받아옴)
-const replayItems = ref([])
-// ▼ 요청하신 플레이리스트 ID 고정 및 채널 재생목록 이동용 링크
+const props = defineProps({
+  selectedTab: { type: String, required: true },
+  excludedVideoIds: { type: Array, default: () => [] }
+})
+
 const REPLAY_CHANNEL_ID = 'UCzdsBMcTdToWM4S72p49Dew'
-const channelVideosUrl = `https://www.youtube.com/channel/${REPLAY_CHANNEL_ID}/videos` // https://www.youtube.com/channel/UCJf5q7jtsBQW31ucEcXyRiQ/videos
-const loading     = ref(true)
-const channelPage = ref(0)
-const clipPage    = ref(0)
-const size        = 12             // 이거 한 페이지당 클립개수다 - size를 늘리면 더 많이 보여주는데 일단 9에서 반응보자
-const skipCount = computed(() =>
-   props.selectedTab === 'clip' ? 7 : 0
-)
-const sortBy      = ref('latest')
+const CHANNEL_BATCH_SIZE = 12
+const CLIPS_PER_PAGE = 12
 
-// replay 탭만 제외하고 클립 그리드 모드
+const gridTopRef = ref(null)
+const allChannels = ref([])
+const totalCount = ref(0)
+const replayItems = ref([])
+const loading = ref(true)
+const loadedChannelPage = ref(0)
+const clipPage = ref(0)
+const channelVideosUrl = `https://www.youtube.com/channel/${REPLAY_CHANNEL_ID}/videos`
+
 const isGridMode = computed(() => props.selectedTab !== 'replay')
+const excludedSet = computed(() => new Set(props.excludedVideoIds))
 
-// 모든 클립(flat) → 최신순 정렬
-const allClips = computed(() =>
-  allChannels.value
-    .flatMap(c =>
-      (c.recentVideos || []).map(v => ({
-        ...v,
-        channelName: c.channelName,
-        channelLink: c.channelLink
-      }))
-    )
-    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-)
+const allClips = computed(() => {
+  const unique = new Map()
+  allChannels.value.forEach(channel => {
+    (channel.recentVideos || []).forEach(video => {
+      if (!video?.videoId || excludedSet.value.has(video.videoId)) return
+      unique.set(video.videoId, {
+        ...video,
+        channelName: channel.channelName,
+        channelLink: channel.channelLink,
+        channelId: channel.channelId
+      })
+    })
+  })
+  return [...unique.values()].sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+})
 
-// 화면에 보여줄 클립
 const displayedClips = computed(() => {
-  const start = skipCount.value + clipPage.value * size
-  return allClips.value.slice(start, start + size)
+  const start = clipPage.value * CLIPS_PER_PAGE
+  return allClips.value.slice(start, start + CLIPS_PER_PAGE)
 })
 
-// 채널 정렬
-const sortedChannels = computed(() => {
-  const list = [...allChannels.value]
-  if (sortBy.value === 'latest') {
-    return list.sort((a, b) =>
-      new Date(b.recentVideos[0]?.publishedAt || 0) -
-      new Date(a.recentVideos[0]?.publishedAt || 0)
-    )
-  }
-  if (sortBy.value === 'name') {
-    return list.sort((a, b) => a.channelName.localeCompare(b.channelName))
-  }
-  if (sortBy.value === 'random') {
-    return list.sort(() => Math.random() - 0.5)
-  }
-  return list
-})
-
-// 화면에 보여줄 채널 페이지
-/* eslint-disable-next-line no-unused-vars */
-const pagedChannels = computed(() =>
-  sortedChannels.value.slice(channelPage.value * size, (channelPage.value + 1) * size)
+const currentPage = computed(() => clipPage.value + 1)
+const hasMoreChannelPages = computed(() =>
+  (loadedChannelPage.value + 1) * CHANNEL_BATCH_SIZE < totalCount.value
 )
-
-// 페이징 계산
-const maxPage = computed(() => {
-  if (isGridMode.value) {
-    // 그리드(클립) 모드: skipCount로 음수 방지 + 최소 1페이지 보장
-    const effective = Math.max(0, allClips.value.length - skipCount.value)
-    return Math.max(1, Math.ceil(effective / size))
-  } else {
-    // replay 모드: totalCount가 0이어도 최소 1페이지 보장
-    const total = Math.max(0, totalCount.value || 0)
-    return Math.max(1, Math.ceil(total / size))
-  }
-})
-
-const currentPage = computed(() =>
-  isGridMode.value ? clipPage.value + 1 : channelPage.value + 1
+const hasLoadedNextClipPage = computed(() =>
+  (clipPage.value + 1) * CLIPS_PER_PAGE < allClips.value.length
 )
+const isPrevDisabled = computed(() => clipPage.value <= 0)
+const isNextDisabled = computed(() => !hasLoadedNextClipPage.value && !hasMoreChannelPages.value)
 
-const isPrevDisabled = computed(() =>
-  isGridMode.value ? clipPage.value <= 0 : channelPage.value <= 0
-)
-
-const isNextDisabled = computed(() =>
-  isGridMode.value
-    ? clipPage.value >= maxPage.value - 1
-    : channelPage.value >= maxPage.value - 1
-)
-
-// API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
-/* eslint-disable-next-line no-unused-vars */
 async function fetchTotalCount() {
-  const url = `/api/channels/${props.selectedTab}/totalCount`  // production
-  //const url = `http://localhost:8080/api/channels/${props.selectedTab}/totalCount`  // dev
-  totalCount.value = (await axios.get(url)).data
+  const { data } = await api.get(`/api/channels/${props.selectedTab}/totalCount`)
+  totalCount.value = Number(data) || 0
 }
-async function fetchChannels() {
-  const url = `/api/channels/${props.selectedTab}`  // production
-  //const url = `http://localhost:8080/api/channels/${props.selectedTab}`  // dev
-  allChannels.value = (await axios.get(url, {
-    params: { page: channelPage.value, size }
-  })).data
+
+async function fetchChannelPage(page, append = false) {
+  const { data } = await api.get(`/api/channels/${props.selectedTab}`, {
+    params: { page, size: CHANNEL_BATCH_SIZE }
+  })
+  const channels = Array.isArray(data) ? data : []
+  allChannels.value = append ? [...allChannels.value, ...channels] : channels
+  loadedChannelPage.value = page
 }
 
 async function loadChannelData() {
@@ -215,56 +189,71 @@ async function loadChannelData() {
   try {
     if (props.selectedTab === 'replay') {
       await fetchReplayChannelVideos()
-      totalCount.value = 0
-    } else {
-      await fetchChannels()
-      totalCount.value = 0
+      return
     }
+    await Promise.all([fetchTotalCount(), fetchChannelPage(0)])
+  } catch (error) {
+    console.error('loadChannelData error:', error)
+    allChannels.value = []
   } finally {
     loading.value = false
   }
 }
 
-// 초기/탭 변경 시 데이터 로드
-onMounted(loadChannelData)
-watch(() => props.selectedTab, () => {
-  channelPage.value = 0
-  clipPage.value    = 0
-  loadChannelData()
-})
-
-// 페이지 이동
 function prevPage() {
-  if (isGridMode.value && clipPage.value > 0) {
-    clipPage.value--
-  } else if (!isGridMode.value && channelPage.value > 0) {
-    channelPage.value--
-    loadChannelData()
-  }
-  //window.scrollTo({ top: 0, behavior: 'smooth' }) // 상단이동 금지
-  gridTopRef?.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-function nextPage() {
-  if (isGridMode.value && clipPage.value < maxPage.value - 1) {
-    clipPage.value++
-  } else if (!isGridMode.value && channelPage.value < maxPage.value - 1) {
-    channelPage.value++
-    loadChannelData()
-  }
-  //window.scrollTo({ top: 0, behavior: 'smooth' }) // 상단이동 금지
-  gridTopRef?.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (clipPage.value > 0) clipPage.value--
+  scrollToGrid()
 }
 
-// 썸네일 고해상도 변환
+async function nextPage() {
+  if (loading.value) return
+  loading.value = true
+  try {
+    while (!hasLoadedNextClipPage.value && hasMoreChannelPages.value) {
+      await fetchChannelPage(loadedChannelPage.value + 1, true)
+    }
+    if (hasLoadedNextClipPage.value) clipPage.value++
+  } catch (error) {
+    console.error('nextPage error:', error)
+  } finally {
+    loading.value = false
+    await nextTick()
+    scrollToGrid()
+  }
+}
+
+function scrollToGrid() {
+  gridTopRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function getHighRes(url) {
-  return url.replace(/default\.jpg$/, 'maxresdefault.jpg')
+  return url ? url.replace(/default\.jpg$/, 'maxresdefault.jpg') : defaultImg
 }
 
-// 다시보기 - 독케익 다시보기로 변경 
 async function fetchReplayChannelVideos() {
-  const url = `/api/channel-videos/${REPLAY_CHANNEL_ID}`
-  const { data } = await axios.get(url, { params: { maxResults: 25 } })
+  const { data } = await api.get(`/api/channel-videos/${REPLAY_CHANNEL_ID}`, {
+    params: { maxResults: 25 }
+  })
   replayItems.value = Array.isArray(data) ? data : []
 }
 
+async function trackVideoClick(item, category) {
+  try {
+    await api.post('/api/metrics/video-click', {
+      videoId: item.videoId,
+      videoTitle: item.videoTitle,
+      category,
+      channelName: item.channelName || '',
+      channelId: item.channelId || ''
+    })
+  } catch (error) {
+    console.error('trackVideoClick error:', error)
+  }
+}
+
+watch(() => props.excludedVideoIds, () => {
+  clipPage.value = 0
+})
+
+onMounted(loadChannelData)
 </script>

@@ -1,18 +1,19 @@
 package com.DokHub.backend.controller;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.OffsetDateTime;
+import java.util.Map;
+
 @RestController
-public class HealthController { // 2026-05-04 render 배포 확인용 체크 컨트롤러
+public class HealthController {
 
     @GetMapping("/api/health")
     public Map<String, String> health() {
-        Map<String, String> result = new HashMap<String, String>();
-        result.put("status", "ok");
-        return result;
+        return Map.of(
+                "status", "ok",
+                "checkedAt", OffsetDateTime.now().toString()
+        );
     }
 }

@@ -34,3 +34,9 @@ build/
 
 # .env 파일 무시
 src/main/resources/.env
+.env
+.env.*
+!.env.example
+
+# 로컬 전용 Spring 설정 및 비밀값
+src/main/resources/application-local.properties

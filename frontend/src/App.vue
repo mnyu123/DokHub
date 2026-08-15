@@ -21,12 +21,23 @@
         @click="goChat"
         class="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-focus transition z-[95]"
       >
-        <i class="fa-solid fa-message"></i>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12a8 8 0 0 1-8 8H6l-4 2 1.4-4.2A9 9 0 1 1 21 12Z" />
+        </svg>
       </button>
 
       <!-- LIVE FAB (방송중일 때만) -->
       <button
-        v-if="liveOn"
+        v-if="liveStatus.liveOn"
         @click="goLive"
         class="fixed bottom-20 right-6 p-4 bg-red-500 text-white rounded-full shadow-lg animate-pulse transition z-[100]"
       >
@@ -47,12 +58,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import HeaderComponent from '@/components/HeaderComponent.vue';
 import SidebarMenu     from '@/components/SidebarMenu.vue';
 import FooterComponent from '@/components/FooterComponent.vue';
+import { liveStatus, refreshLiveStatus } from '@/state/liveStatus';
 
+const router = useRouter();
 const theme = ref(localStorage.getItem('theme') || 'dark');
 function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark';
@@ -60,30 +73,32 @@ function toggleTheme() {
 }
 
 function goChat() {
-  window.location.href = '/chat/dokchat';
+  router.push('/chat/dokchat');
 }
 function goLive() {
-  window.open('https://chzzk.naver.com/b68af124ae2f1743a1dcbf5e2ab41e0b', '_blank');
+  window.open('https://chzzk.naver.com/b68af124ae2f1743a1dcbf5e2ab41e0b', '_blank', 'noopener,noreferrer');
 }
 
-const liveOn = ref(false);
 const showToast = ref(false);
+let liveTimer;
+let toastTimer;
 
 async function fetchLiveStatus() {
-  try {
-    const { data } = await axios.get('/api/live/status');
-    liveOn.value = data.livestatus === 'on';
-    if (liveOn.value) {
-      showToast.value = true;
-      setTimeout(() => (showToast.value = false), 3000);
-    }
-  } catch (e) {
-    console.error('fetchLiveStatus error:', e);
+  const { started } = await refreshLiveStatus();
+  if (started) {
+    showToast.value = true;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (showToast.value = false), 3000);
   }
 }
 
 onMounted(() => {
   fetchLiveStatus();
-  setInterval(fetchLiveStatus, 60000);
+  liveTimer = setInterval(fetchLiveStatus, 60000);
+});
+
+onUnmounted(() => {
+  clearInterval(liveTimer);
+  clearTimeout(toastTimer);
 });
 </script>

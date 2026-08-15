@@ -3,6 +3,7 @@ package com.DokHub.backend.service;
 import com.DokHub.backend.dto.VideoInfoDto;
 import com.DokHub.backend.dto.YouTubeChannelResponse;
 import com.DokHub.backend.dto.YouTubeSearchResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;     // ^^^ 추가
 import org.springframework.cache.annotation.Cacheable;
@@ -21,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class YouTubeService {
     private final List<String> apiKeys;
     private final AtomicInteger currentKeyIndex = new AtomicInteger(0);
@@ -66,7 +68,7 @@ public class YouTubeService {
     private void switchToNextApiKey() {
         int nextIndex = (currentKeyIndex.get() + 1) % apiKeys.size();
         currentKeyIndex.set(nextIndex);
-        System.out.println("[DOKHUB] : API 한도가 넘어 키를 교체합니다. " + getCurrentApiKey());
+        log.warn("[DOKHUB] YouTube API 한도 초과로 다음 키로 전환합니다. (index={})", nextIndex);
     }
 
     // RFC3339(Z, +09:00 등) 안전 파싱
@@ -301,7 +303,10 @@ public class YouTubeService {
             return playlistItemsCache.get(key);
         }
         List<VideoInfoDto> items = getPlaylistItems(playlistId, maxResults);
-        playlistItemsCache.put(key, items);
+        if (items != null && !items.isEmpty()) {
+            playlistItemsCache.put(key, items);
+        }
+        //playlistItemsCache.put(key, items);
         return items;
     }
 
@@ -314,7 +319,10 @@ public class YouTubeService {
             return channelVideosCache.get(key);
         }
         List<VideoInfoDto> items = getChannelVideos(channelId, maxResults);
-        channelVideosCache.put(key, items);
+        if (items != null && !items.isEmpty()) { // 데이터를 가져와야 캐시에 저장하지
+            channelVideosCache.put(key, items);
+        }
+        //channelVideosCache.put(key, items);
         return items;
     }
 
@@ -402,13 +410,13 @@ public class YouTubeService {
      */
     @Scheduled(fixedRate = 21600000) // 6시간 마다 실행
     //@CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch"}, allEntries = true)
-    @CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch", "youtubePlaylistItems"}, allEntries = true)
+    @CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch", "youtubePlaylistItems", "youtubeChannelVideos", "aiChannelSummary"}, allEntries = true)
     public void refreshCache() {
         recentVideosCache.clear();
         thumbnailsCache.clear();
         playlistItemsCache.clear(); // 재생목록 캐시 비우기 추가
         channelVideosCache.clear(); // 독케익 다시보기 캐시 비우기 추가
-        System.out.println("[DOKHUB] : 6시간 스케줄러가 실행됩니다.");
+        log.info("[DOKHUB] YouTube 캐시를 갱신했습니다.");
     }
 
     /**
@@ -417,7 +425,7 @@ public class YouTubeService {
     @CacheEvict(value = "youtubeVideos", key = "#channelId")
     public void clearRecentVideosCache(String channelId) {
         recentVideosCache.remove(channelId);
-        System.out.println("[DOKHUB] : 해당 채널의 최근영상 정보를 갱신합니다." + channelId);
+        log.info("[DOKHUB] 채널 최근 영상 캐시를 비웠습니다. channelId={}", channelId);
     }
 
     /**
@@ -426,6 +434,6 @@ public class YouTubeService {
     @CacheEvict(value = "channelThumbnailsBatch", key = "#channelIds")
     public void clearThumbnailsCache(List<String> channelIds) {
         channelIds.forEach(thumbnailsCache::remove);
-        System.out.println("[DOKHUB] : 해당 채널의 캐시를 강제로 비웠습니다. " + channelIds);
+        log.info("[DOKHUB] 채널 썸네일 캐시를 비웠습니다. count={}", channelIds.size());
     }
 }
