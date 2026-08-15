@@ -1,7 +1,7 @@
 <template>
   <!-- 햄버거 토글 아이콘 -->
   <label for="drawer-left" class="btn btn-ghost lg:hidden">
-    <i class="fa-solid fa-bars"></i>
+    <span aria-hidden="true">☰</span>
   </label>
 
   <!-- drawer -->
@@ -14,18 +14,18 @@
       <ul>
         <li>
           <router-link to="/" class="flex items-center gap-2">
-            <i class="fa-solid fa-house"></i> 홈
+            <span aria-hidden="true">⌂</span> 홈
           </router-link>
         </li>
         <li>
           <router-link to="/chat/dokchat" class="flex items-center gap-2">
-            <i class="fa-solid fa-message"></i> 독채팅
+            <span aria-hidden="true">💬</span> 독채팅
           </router-link>
         </li>
         <li>
           <!-- $emit 대신 emit 함수 사용 -->
           <button class="flex items-center gap-2" @click="emit('toggle-theme')">
-            <i class="fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
+            <span aria-hidden="true">{{ isDark ? '☀' : '☾' }}</span>
             {{ isDark ? '라이트' : '다크' }}
           </button>
         </li>

@@ -25,6 +25,7 @@
       <a
         :href="link.href"
         target="_blank"
+        rel="noopener noreferrer"
         class="tooltip tooltip-bottom"
         :data-tip="link.alt"
       >

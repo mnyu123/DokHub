@@ -1,221 +1,221 @@
 package com.DokHub.backend.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.DokHub.backend.entity.ChatMessageEntity;
+import com.DokHub.backend.repository.ChatMessageRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.Getter;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import xyz.r2turntrue.chzzk4j.ChzzkClient;
 import xyz.r2turntrue.chzzk4j.ChzzkClientBuilder;
 import xyz.r2turntrue.chzzk4j.auth.ChzzkLegacyLoginAdapter;
-import xyz.r2turntrue.chzzk4j.chat.*;
-import xyz.r2turntrue.chzzk4j.chat.event.*;
+import xyz.r2turntrue.chzzk4j.chat.ChatMessage;
+import xyz.r2turntrue.chzzk4j.chat.ChzzkChat;
+import xyz.r2turntrue.chzzk4j.chat.ChzzkChatBuilder;
+import xyz.r2turntrue.chzzk4j.chat.event.ChatMessageEvent;
+import xyz.r2turntrue.chzzk4j.chat.event.ConnectEvent;
+import xyz.r2turntrue.chzzk4j.chat.event.ConnectionClosedEvent;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 public class ChzzkChatService {
 
-    /* ────── 설정 값 ────── */
-    @Value("${chzzk.client.id}")
-    private String apiClientId;
-    @Value("${chzzk.client.secret}")
-    private String apiSecret;
-    @Value("${chzzk.nid.aut}")
-    private String nidAut;
-    @Value("${chzzk.nid.ses}")
-    private String nidSes;
-
-    // 임시 테스트용 니니아 f00f6d46ecc6d735b96ecf376b9e5212
-    // 독케익 채널 아이디 b68af124ae2f1743a1dcbf5e2ab41e0b
     private static final String CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
     private static final String TARGET_USER_NICKNAME = "독케익";
     private static final String TARGET_USER_TEST = "쇼츠유입";
-    private static final String TARGET_USER_TESTNAME = "테스트용 수집";
+    private static final int MAX_HISTORY = 100;
 
-    @Getter
-    private final List<String> chatHistory = new CopyOnWriteArrayList<>();
+    @Value("${chzzk.client.id:}")
+    private String apiClientId;
+    @Value("${chzzk.client.secret:}")
+    private String apiSecret;
+    @Value("${chzzk.nid.aut:}")
+    private String nidAut;
+    @Value("${chzzk.nid.ses:}")
+    private String nidSes;
+    @Value("${chzzk.chat.enabled:true}")
+    private boolean chatEnabled;
 
+    private final ChatMessageRepository chatMessageRepository;
+    private final List<String> inMemoryHistory = new CopyOnWriteArrayList<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    private volatile boolean isChatConnected;
     private ChzzkClient client;
     private ChzzkChat chat;
 
-    private final ScheduledExecutorService scheduler =
-            Executors.newSingleThreadScheduledExecutor();
-
-    // 실제 웹소켓 연결 상태를 추적하기 위한 변수
-    private boolean isChatConnected = false;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    /* ────── 초기 설정 ────── */
+    public ChzzkChatService(ChatMessageRepository chatMessageRepository) {
+        this.chatMessageRepository = chatMessageRepository;
+    }
 
     @PostConstruct
     public void init() {
-        log.info("[DOKHUB] API 클라이언트 생성(ID={})", apiClientId);
-
-        createClientAndChat(nidAut, nidSes);
-        chat.connectAsync();                         // 최초 연결
+        if (!isConfigured()) {
+            log.info("[DOKHUB] Chzzk 채팅 연결이 비활성화되었거나 인증정보가 없습니다.");
+            return;
+        }
+        log.info("[DOKHUB] Chzzk 채팅 연결 준비 완료. 방송 시작 시 연결합니다.");
     }
 
-    /* ────── 클라이언트+채팅 재생성 ────── */
-    private void createClientAndChat(String aut, String ses) {
-        try {
-            if (chat != null) {
-                chat.closeAsync();
-                isChatConnected = false; // 확실한 초기화
-            }
+    private boolean isConfigured() {
+        return chatEnabled
+                && !isBlank(apiClientId)
+                && !isBlank(apiSecret)
+                && !isBlank(nidAut)
+                && !isBlank(nidSes);
+    }
 
+    private synchronized void createClientAndChat(String aut, String ses) {
+        if (!isConfigured()) {
+            return;
+        }
+        try {
+            closeChat();
             var adapter = new ChzzkLegacyLoginAdapter(aut, ses);
             client = new ChzzkClientBuilder(apiClientId, apiSecret)
                     .withLoginAdapter(adapter)
                     .build();
             client.loginAsync().join();
-            log.info("[DOKHUB] 사용자 인증 완료");
-
             chat = new ChzzkChatBuilder(client, CHANNEL_ID).build();
             registerEventHandlers(chat);
-
         } catch (IOException e) {
-            throw new RuntimeException("[DOKHUB] : ChzzkChat 생성 실패", e);
+            throw new IllegalStateException("Chzzk 채팅 클라이언트 생성에 실패했습니다.", e);
         }
     }
 
-    /* ────── 이벤트 핸들러 등록 ────── */
-    private void registerEventHandlers(ChzzkChat c) {
-
-        /* 연결 */
-        c.on(ConnectEvent.class, evt -> {
+    private void registerEventHandlers(ChzzkChat currentChat) {
+        currentChat.on(ConnectEvent.class, event -> {
             isChatConnected = true;
-            log.info("[DOKHUB] 채팅 소켓 연결 | 최근 채팅 50개 요청 (재연결 여부 확인 : {})", evt.isReconnecting());
-            c.requestRecentChat(50);
+            currentChat.requestRecentChat(50);
+            log.info("[DOKHUB] Chzzk 채팅 소켓 연결 완료");
         });
 
-        /* 메시지 */
-        c.on(ChatMessageEvent.class, evt -> {
-            ChatMessage msg = evt.getMessage();
-            if (msg.getProfile() == null) return;
+        currentChat.on(ChatMessageEvent.class, event -> {
+            ChatMessage message = event.getMessage();
+            if (message.getProfile() == null) {
+                return;
+            }
 
-            String nickname = msg.getProfile().getNickname();
+            String nickname = message.getProfile().getNickname();
+            String content = normalizeContent(message.getContent());
+            if (content.isEmpty()) {
+                return;
+            }
 
-            // 1. 수집 대상(독케익 또는 테스트계정)인지 확인
-            if (TARGET_USER_NICKNAME.equals(nickname) || TARGET_USER_TEST.equals(nickname)) {
-
-                // 원본 텍스트 가져오기
-                String text = msg.getContent();
-
-                // 2. 이모지 파싱 및 치환 로직 (공통 적용)
-                try {
-                    String rawJson = msg.getRawJson();
-
-                    if (rawJson != null) {
-                        JsonNode rootNode = objectMapper.readTree(rawJson);
-                        JsonNode extrasNode = rootNode.path("extras");
-
-                        if (extrasNode.isTextual()) {
-                            extrasNode = objectMapper.readTree(extrasNode.asText());
-                        }
-
-                        JsonNode emojisNode = extrasNode.path("emojis");
-
-                        if (!emojisNode.isMissingNode() && emojisNode.isObject()) {
-                            Iterator<Map.Entry<String, JsonNode>> fields = emojisNode.fields();
-
-                            while (fields.hasNext()) {
-                                Map.Entry<String, JsonNode> field = fields.next();
-                                String code = field.getKey();
-                                String imageUrl = field.getValue().asText();
-
-                                String target = "{:" + code + ":}";
-                                String imgTag = "<img src='" + imageUrl + "' alt='" + code + "' style='width:24px; height:24px; display:inline-block; vertical-align:middle;' />";
-
-                                text = text.replace(target, imgTag);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("[DOKHUB] 이모지 파싱 중 에러 발생", e);
-                }
-
-                // 3. 이모지가 치환된 최종 텍스트를 프론트엔드 전송용 리스트에 추가
-                //chatHistory.add(text);
-
-                // 4. 로그 출력 분기 (콘솔 확인용)
-                if (TARGET_USER_NICKNAME.equals(nickname)) {
-                    // 운영용(독케익): 프론트엔드로 전달할 리스트에 추가하고 로그 출력
-                    chatHistory.add(text);
-                    log.info("[CHAT] {}: {}", TARGET_USER_NICKNAME, text);
-                } else {
-                    // 테스트용(쇼츠유입): 리스트에는 추가하지 않고 오직 서버 로그만 출력 (화면 노출 X)
-                    log.info("[CHAT TEST] {}: {}", TARGET_USER_TESTNAME, text);
-                }
+            if (TARGET_USER_NICKNAME.equals(nickname)) {
+                saveMessage(content);
+                log.info("[CHAT] {}: {}", TARGET_USER_NICKNAME, content);
+            } else if (TARGET_USER_TEST.equals(nickname)) {
+                log.debug("[CHAT TEST] {}", content);
             }
         });
 
-        /* 끊김 */
-        c.on(ConnectionClosedEvent.class, evt -> {
-            isChatConnected = false; // 🔥 이거 반드시 추가해야 합니다! 🔥
-            int code = evt.getCode();
-            log.warn("[DOKHUB] 소켓 종료(code={}, reason={})", code, evt.getReason());
-
-            if (code == 4003) {              // 쿠키 만료
-                log.warn("[DOKHUB] 4003 – 쿠키 재생성 시도");
-                scheduler.schedule(this::refreshCookiesAndReconnect, 1, TimeUnit.SECONDS);
+        currentChat.on(ConnectionClosedEvent.class, event -> {
+            isChatConnected = false;
+            log.warn("[DOKHUB] Chzzk 채팅 소켓 종료(code={}, reason={})", event.getCode(), event.getReason());
+            if (event.getCode() == 4003 && isConfigured()) {
+                scheduler.schedule(this::refreshCookiesAndReconnect, 30, TimeUnit.SECONDS);
             }
         });
     }
 
-    /* ────── 쿠키 새로 받아 재연결 (기본: 기존 값 재사용) ────── */
-    private void refreshCookiesAndReconnect() {
+    private void saveMessage(String content) {
+        inMemoryHistory.add(content);
+        while (inMemoryHistory.size() > MAX_HISTORY) {
+            inMemoryHistory.remove(0);
+        }
+
         try {
-            /* TODO: WebDriver 등으로 새 쿠키를 받아오려면 아래 두 줄을 교체 */
-            String newAut = nidAut;   // ← 새 NID_AUT
-            String newSes = nidSes;   // ← 새 NID_SES
+            ChatMessageEntity entity = new ChatMessageEntity();
+            entity.setContent(content);
+            entity.setMessageTime(System.currentTimeMillis());
+            entity.setSenderChannelId(CHANNEL_ID);
+            chatMessageRepository.save(entity);
+        } catch (RuntimeException exception) {
+            log.error("[DOKHUB] 채팅 메시지 DB 저장 실패", exception);
+        }
+    }
 
-            createClientAndChat(newAut, newSes);
-            chat.connectAsync();
-            log.info("[DOKHUB] 새 쿠키로 재연결 완료");
+    public List<String> getChatHistory() {
+        try {
+            List<String> result = new ArrayList<>(chatMessageRepository.findTop100ByOrderByMessageTimeDesc().stream()
+                    .map(ChatMessageEntity::getContent)
+                    .filter(content -> content != null && !content.isBlank())
+                    .toList());
+            Collections.reverse(result);
+            return result;
+        } catch (RuntimeException exception) {
+            log.warn("[DOKHUB] 채팅 DB 조회 실패, 메모리 기록을 반환합니다.", exception);
+            return List.copyOf(inMemoryHistory);
+        }
+    }
 
-        } catch (Exception e) {
-            log.error("[DOKHUB] 쿠키 재발급·재연결 실패, 30초 뒤 재시도", e);
+    private void refreshCookiesAndReconnect() {
+        if (!isConfigured()) {
+            return;
+        }
+        try {
+            createClientAndChat(nidAut, nidSes);
+            if (chat != null) {
+                chat.connectAsync();
+            }
+        } catch (RuntimeException exception) {
+            log.error("[DOKHUB] Chzzk 채팅 재연결 실패", exception);
             scheduler.schedule(this::refreshCookiesAndReconnect, 30, TimeUnit.SECONDS);
         }
     }
 
-    /**
-     * 주기적으로(또는 라이브 상태가 변경될 때) 호출되는 방어 로직
-     */
-    public void ensureChatConnection(boolean isCurrentlyLive) {
-        if (isCurrentlyLive) {
-            // 방송이 켜져 있는데 연결이 유실된 경우 (이벤트 핸들러에서 상태 갱신됨)
-            if (chat == null || !isChatConnected) {
-                log.info("[DOKHUB] 방송(ON-AIR) 중이나 채팅 세션이 끊어져 있습니다. 기존 객체를 파기하고 새 소켓으로 재연결합니다.");
-
-                try {
-                    // 죽은 chat 객체에 connectAsync()를 호출하지 않고, 무조건 아예 새로 만듭니다.
-                    createClientAndChat(nidAut, nidSes);
-                    chat.connectAsync();
-                } catch (Exception e) {
-                    log.error("[DOKHUB-CHAT] 채팅 재연결 실패", e);
-                }
-            }
-        } else {
-            // 방송이 꺼져 있는데 연결이 유지되고 있는 경우 안전하게 자원 해제
-            if (chat != null && isChatConnected) {
-                log.info("[DOKHUB] 방송이 종료되었습니다. 기존 채팅 세션을 안전하게 종료합니다.");
-                try {
-                    chat.closeAsync();
-                } catch (Exception e) {
-                    log.error("[DOKHUB-CHAT] 채팅 세션 종료 실패", e);
-                }
-                isChatConnected = false;
+    public synchronized void ensureChatConnection(boolean currentlyLive) {
+        if (!currentlyLive || !isConfigured()) {
+            closeChat();
+            return;
+        }
+        if (chat == null || !isChatConnected) {
+            createClientAndChat(nidAut, nidSes);
+            if (chat != null) {
+                chat.connectAsync();
             }
         }
+    }
+
+    private synchronized void closeChat() {
+        if (chat != null) {
+            try {
+                chat.closeAsync();
+            } catch (RuntimeException exception) {
+                log.debug("[DOKHUB] Chzzk 채팅 종료 중 오류", exception);
+            }
+        }
+        chat = null;
+        client = null;
+        isChatConnected = false;
+    }
+
+    private String normalizeContent(String content) {
+        if (content == null) {
+            return "";
+        }
+        String normalized = content.strip();
+        return normalized.length() <= 500 ? normalized : normalized.substring(0, 500);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        closeChat();
+        scheduler.shutdownNow();
     }
 }

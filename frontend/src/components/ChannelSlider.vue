@@ -24,7 +24,9 @@
         <a
           :href="`https://youtu.be/${clip.videoId}`"
           target="_blank"
+          rel="noopener noreferrer"
           class="block w-full h-full"
+          @click="trackSliderClick(clip)"
         >
           <img
             :src="getHighRes(clip.thumbnailUrl)"
@@ -44,31 +46,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { ref, onMounted } from 'vue'
+import api from '@/api'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation, Pagination, A11y } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
-import defaultImg from '@/assets/doksame3.gif'
+import defaultImg from '@/assets/default_thumbnail.svg'
 
-const props = defineProps({ selectedTab: String })
+const emit = defineEmits(['loaded-video-ids'])
 const sliderClips = ref([])
 
 async function fetchSliderClips() {
-  /*
-  // 일주일 새 올라온 카테고리=clip 채널 7개 호출
-  const { data } = await axios.get(
-    `http://localhost:8080/api/channels/clip`,
-    { params: { page: 0, size: 7 } }
-  )  */
-    // 일주일 새 올라온 카테고리=clip 채널 7개 호출
-    // API 호출 (prod/dev 양쪽 모두 주석 형태로 유지)
-    const url = `/api/channels/clip`  // production
-    //const url = `http://localhost:8080/api/channels/clip`  // dev
-    const { data } = await axios.get(url, { params: { page: 0, size: 7 } })
-    
+  const { data } = await api.get('/api/channels/clip', { params: { page: 0, size: 7 } })
+
   // 각 채널의 첫번째 recentVideos만 뽑기
   sliderClips.value = data
     .map(c => {
@@ -76,21 +68,36 @@ async function fetchSliderClips() {
       return v
         ? {
             videoId: v.videoId,
-            thumbnailUrl: v.thumbnailUrl,
-            channelName: c.channelName,
-            videoTitle: v.videoTitle
+      thumbnailUrl: v.thumbnailUrl,
+      channelName: c.channelName,
+      channelId: c.channelId,
+      videoTitle: v.videoTitle
           }
         : null
     })
     .filter(Boolean)
+  emit('loaded-video-ids', sliderClips.value.map(clip => clip.videoId))
+}
+
+async function trackSliderClick(clip) {
+  try {
+    await api.post('/api/metrics/video-click', {
+      videoId: clip.videoId,
+      videoTitle: clip.videoTitle,
+      category: 'clip',
+      channelName: clip.channelName || '',
+      channelId: clip.channelId || ''
+    })
+  } catch (e) {
+    console.error('trackSliderClick error:', e)
+  }
 }
 
 function getHighRes(url) {
-  return url.replace(/default\.jpg$/, 'maxresdefault.jpg')
+  return url ? url.replace(/default\.jpg$/, 'maxresdefault.jpg') : defaultImg
 }
 
 onMounted(fetchSliderClips)
-watch(() => props.selectedTab, fetchSliderClips)
 </script>
 <style scoped>
 /* 래퍼에서 오버레이/버튼 스타일 제어 */

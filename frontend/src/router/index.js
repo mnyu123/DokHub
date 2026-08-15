@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '@/components/HomePage.vue';
-import ChatPage from '@/components/ChatPage.vue';
-import TermsPage from '@/components/TermsPage.vue';
-import PrivacyPage from '@/components/PrivacyPage.vue';
+
+const ChatPage = () => import('@/components/ChatPage.vue');
+const TermsPage = () => import('@/components/TermsPage.vue');
+const PrivacyPage = () => import('@/components/PrivacyPage.vue');
 
 const routes = [
   {

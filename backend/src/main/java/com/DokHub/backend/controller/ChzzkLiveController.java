@@ -1,32 +1,49 @@
 package com.DokHub.backend.controller;
 
+import com.DokHub.backend.security.RequestRateLimiter;
 import com.DokHub.backend.service.ChzzkChatService;
 import com.DokHub.backend.service.ChzzkLiveService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 public class ChzzkLiveController {
 
-    @Autowired
-    private ChzzkLiveService chzzkLiveService;
+    private final ChzzkLiveService chzzkLiveService;
+    private final ChzzkChatService chzzkChatService;
+    private final RequestRateLimiter requestRateLimiter;
 
-    @Autowired
-    private ChzzkChatService chzzkChatService;
-
-    @GetMapping("/api/live/status")
-    public Map<String, String> getLiveStatus() {
-        boolean isLive = chzzkLiveService.isChannelLive();
-        String status = isLive ? "on" : "off";
-        return Map.of("livestatus", status);
+    public ChzzkLiveController(
+            ChzzkLiveService chzzkLiveService,
+            ChzzkChatService chzzkChatService,
+            RequestRateLimiter requestRateLimiter) {
+        this.chzzkLiveService = chzzkLiveService;
+        this.chzzkChatService = chzzkChatService;
+        this.requestRateLimiter = requestRateLimiter;
     }
 
-    @GetMapping("/api/chat/history") // v0.9 신규기능 독채팅
-    public List<String> getChatHistory() {
+    @GetMapping("/api/live/status")
+    public Map<String, String> getLiveStatus(HttpServletRequest request) {
+        enforceRateLimit("live-status:", request, 60);
+        return Map.of("livestatus", chzzkLiveService.isChannelLive() ? "on" : "off");
+    }
+
+    @GetMapping("/api/chat/history")
+    public List<String> getChatHistory(HttpServletRequest request) {
+        enforceRateLimit("chat-history:", request, 30);
         return chzzkChatService.getChatHistory();
+    }
+
+    private void enforceRateLimit(String prefix, HttpServletRequest request, int limit) {
+        if (!requestRateLimiter.allow(prefix + request.getRemoteAddr(), limit, Duration.ofMinutes(1))) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다.");
+        }
     }
 }
