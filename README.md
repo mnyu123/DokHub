@@ -38,28 +38,3 @@ npm run serve
 ```
 
 개발 서버는 `/api` 요청을 `http://localhost:8080`으로 프록시합니다. 운영에서는 Netlify 프록시를 사용합니다.
-
-## 주요 환경변수
-
-| 변수 | 용도 |
-|---|---|
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | MySQL 연결 |
-| `YOUTUBE_API_KEY` | YouTube Data API |
-| `CHZZK_CLIENT_ID`, `CHZZK_CLIENT_SECRET` | Chzzk Open API |
-| `CHZZK_NID_AUT`, `CHZZK_NID_SES` | Chzzk 채팅 로그인 |
-| `CHZZK_LIVE_ENABLED`, `CHZZK_CHAT_ENABLED` | Chzzk 기능 활성화 |
-| `ADMIN_API_KEY` | 캐시 관리 API의 `X-Admin-Key` 값 |
-| `CORS_ALLOWED_ORIGINS` | 쉼표로 구분한 허용 프런트 도메인 |
-
-실제 값은 Git에 커밋하지 않습니다.
-
-## 검증
-
-```powershell
-./backend/mvnw.cmd test
-cd frontend
-npm run lint
-npm run build
-```
-
-DB 스키마 기준은 `backend/src/main/resources/db/migration`의 Flyway 마이그레이션입니다. 기존 DB는 처음 실행할 때 현재 상태를 버전 1 베이스라인으로 등록합니다.
