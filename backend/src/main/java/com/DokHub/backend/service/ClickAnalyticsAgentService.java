@@ -37,7 +37,7 @@ public class ClickAnalyticsAgentService {
 
     @Scheduled(
             initialDelayString = "${analytics.clicks.initial-delay-ms:30000}",
-            fixedDelayString = "${analytics.clicks.refresh-ms:300000}"
+            fixedDelayString = "${analytics.clicks.refresh-ms:1800000}"
     )
     @Transactional(readOnly = true)
     public void refreshSnapshots() {

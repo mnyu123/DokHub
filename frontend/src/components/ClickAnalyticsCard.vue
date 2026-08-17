@@ -5,7 +5,7 @@
         <p class="click-insight__eyebrow">VIEWER SIGNAL</p>
         <h2 id="click-insight-title">클릭 인사이트</h2>
       </div>
-      <span class="click-insight__status">5분마다 갱신</span>
+      <span class="click-insight__status">30분마다 갱신</span>
     </div>
 
     <div v-if="loading && !analytics" class="click-insight__loading">
@@ -74,7 +74,7 @@
 import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
 import api from '@/api'
 
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000
 const analytics = ref(null)
 const loading = ref(true)
 const error = ref(false)
