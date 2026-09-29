@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -51,8 +52,12 @@ public class ChzzkChatService {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     private volatile boolean isChatConnected;
+    private boolean isChatConnecting;
+    private boolean liveRequested;
+    private boolean shuttingDown;
+    private ScheduledFuture<?> reconnectTask;
     private ChzzkClient client;
-    private ChzzkChat chat;
+    private volatile ChzzkChat chat;
 
     public ChzzkChatService(ChatMessageRepository chatMessageRepository) {
         this.chatMessageRepository = chatMessageRepository;
@@ -81,26 +86,44 @@ public class ChzzkChatService {
         }
         try {
             closeChat();
-            var adapter = new ChzzkLegacyLoginAdapter(aut, ses);
-            client = new ChzzkClientBuilder(apiClientId, apiSecret)
-                    .withLoginAdapter(adapter)
-                    .build();
-            client.loginAsync().join();
-            chat = new ChzzkChatBuilder(client, CHANNEL_ID).build();
+            client = createChatClient(aut, ses);
+            client.loginAsync().orTimeout(15, TimeUnit.SECONDS).join();
+            chat = createChatSession(client);
             registerEventHandlers(chat);
         } catch (IOException e) {
             throw new IllegalStateException("Chzzk 채팅 클라이언트 생성에 실패했습니다.", e);
         }
     }
 
+    ChzzkClient createChatClient(String aut, String ses) throws IOException {
+        ChzzkLegacyLoginAdapter adapter = new ChzzkLegacyLoginAdapter(aut, ses);
+        return new ChzzkClientBuilder(apiClientId, apiSecret)
+                .withLoginAdapter(adapter)
+                .build();
+    }
+
+    ChzzkChat createChatSession(ChzzkClient currentClient) throws IOException {
+        return new ChzzkChatBuilder(currentClient, CHANNEL_ID).withAutoReconnect(false).build();
+    }
+
     private void registerEventHandlers(ChzzkChat currentChat) {
         currentChat.on(ConnectEvent.class, event -> {
-            isChatConnected = true;
-            currentChat.requestRecentChat(50);
-            log.info("[DOKHUB] Chzzk 채팅 소켓 연결 완료");
+            synchronized (this) {
+                if (currentChat != chat || !liveRequested || shuttingDown) {
+                    currentChat.closeAsync();
+                    return;
+                }
+                isChatConnected = true;
+                isChatConnecting = false;
+                currentChat.requestRecentChat(50);
+                log.info("[DOKHUB] Chzzk 채팅 소켓 연결 완료");
+            }
         });
 
         currentChat.on(ChatMessageEvent.class, event -> {
+            if (currentChat != chat) {
+                return;
+            }
             ChatMessage message = event.getMessage();
             if (message.getProfile() == null) {
                 return;
@@ -121,10 +144,14 @@ public class ChzzkChatService {
         });
 
         currentChat.on(ConnectionClosedEvent.class, event -> {
-            isChatConnected = false;
-            log.warn("[DOKHUB] Chzzk 채팅 소켓 종료(code={}, reason={})", event.getCode(), event.getReason());
-            if (event.getCode() == 4003 && isConfigured()) {
-                scheduler.schedule(this::refreshCookiesAndReconnect, 30, TimeUnit.SECONDS);
+            synchronized (this) {
+                if (currentChat != chat) {
+                    return;
+                }
+                isChatConnected = false;
+                isChatConnecting = false;
+                log.warn("[DOKHUB] Chzzk 채팅 소켓 종료(code={}, reason={})", event.getCode(), event.getReason());
+                scheduleReconnect(30);
             }
         });
     }
@@ -160,45 +187,80 @@ public class ChzzkChatService {
         }
     }
 
-    private void refreshCookiesAndReconnect() {
-        if (!isConfigured()) {
+    private synchronized void refreshCookiesAndReconnect() {
+        reconnectTask = null;
+        if (!liveRequested || shuttingDown || !isConfigured() || isChatConnected || isChatConnecting) {
             return;
         }
         try {
             createClientAndChat(nidAut, nidSes);
             if (chat != null) {
-                chat.connectAsync();
+                isChatConnecting = true;
+                ChzzkChat currentChat = chat;
+                currentChat.connectAsync().orTimeout(20, TimeUnit.SECONDS).whenComplete((ignored, failure) -> {
+                    synchronized (ChzzkChatService.this) {
+                        if (currentChat != chat || failure == null) {
+                            return;
+                        }
+                        log.warn("[DOKHUB] Chat connection failed", failure);
+                        closeChat();
+                        scheduleReconnect(30);
+                    }
+                });
             }
         } catch (RuntimeException exception) {
             log.error("[DOKHUB] Chzzk 채팅 재연결 실패", exception);
-            scheduler.schedule(this::refreshCookiesAndReconnect, 30, TimeUnit.SECONDS);
+            closeChat();
+            scheduleReconnect(30);
         }
     }
 
-    public synchronized void ensureChatConnection(boolean currentlyLive) {
-        if (!currentlyLive || !isConfigured()) {
+    public synchronized void updateChatConnection(boolean currentlyLive) {
+        liveRequested = currentlyLive && isConfigured() && !shuttingDown;
+        if (!liveRequested) {
+            if (reconnectTask != null) {
+                reconnectTask.cancel(false);
+                reconnectTask = null;
+            }
             closeChat();
             return;
         }
-        if (chat == null || !isChatConnected) {
-            createClientAndChat(nidAut, nidSes);
-            if (chat != null) {
-                chat.connectAsync();
-            }
+        if (!isChatConnected && !isChatConnecting) {
+            scheduleReconnect(0);
         }
     }
 
+    private synchronized void scheduleReconnect(long delaySeconds) {
+        if (!liveRequested || shuttingDown || !isConfigured() || reconnectTask != null) {
+            return;
+        }
+        reconnectTask = scheduler.schedule(this::refreshCookiesAndReconnect, delaySeconds, TimeUnit.SECONDS);
+    }
+
     private synchronized void closeChat() {
-        if (chat != null) {
+        ChzzkChat previousChat = chat;
+        ChzzkClient previousClient = client;
+        chat = null;
+        client = null;
+        isChatConnected = false;
+        isChatConnecting = false;
+        if (previousChat != null) {
             try {
-                chat.closeAsync();
+                previousChat.closeAsync().whenComplete((ignored, failure) -> releaseClient(previousClient));
+                return;
             } catch (RuntimeException exception) {
                 log.debug("[DOKHUB] Chzzk 채팅 종료 중 오류", exception);
             }
         }
-        chat = null;
-        client = null;
-        isChatConnected = false;
+        releaseClient(previousClient);
+    }
+
+    private void releaseClient(ChzzkClient previousClient) {
+        if (previousClient != null) {
+            previousClient.getHttpClient().dispatcher().cancelAll();
+            previousClient.getHttpClient().connectionPool().evictAll();
+            previousClient.getHttpClient().dispatcher().executorService().shutdown();
+        }
     }
 
     private String normalizeContent(String content) {
@@ -214,8 +276,9 @@ public class ChzzkChatService {
     }
 
     @PreDestroy
-    public void shutdown() {
-        closeChat();
+    public synchronized void shutdown() {
+        shuttingDown = true;
+        updateChatConnection(false);
         scheduler.shutdownNow();
     }
 }

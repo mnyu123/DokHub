@@ -2,6 +2,8 @@ package com.DokHub.backend.service;
 
 import com.DokHub.backend.dto.ClickAnalyticsResponse;
 import com.DokHub.backend.repository.VideoClickLogRepository;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -9,11 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -23,7 +25,10 @@ public class ClickAnalyticsAgentService {
     private static final int DEFAULT_LIMIT = 5;
 
     private final VideoClickLogRepository videoClickLogRepository;
-    private final Map<SnapshotKey, ClickAnalyticsResponse> snapshots = new ConcurrentHashMap<>();
+    private final Cache<SnapshotKey, ClickAnalyticsResponse> snapshots = Caffeine.newBuilder()
+            .maximumSize(32)
+            .expireAfterWrite(Duration.ofMinutes(30))
+            .build();
 
     public ClickAnalyticsAgentService(VideoClickLogRepository videoClickLogRepository) {
         this.videoClickLogRepository = videoClickLogRepository;
@@ -32,7 +37,7 @@ public class ClickAnalyticsAgentService {
     @Transactional(readOnly = true)
     public ClickAnalyticsResponse getSnapshot(int periodDays, int limit) {
         SnapshotKey key = new SnapshotKey(safePeriod(periodDays), safeLimit(limit));
-        return snapshots.computeIfAbsent(key, this::buildSnapshot);
+        return snapshots.get(key, this::buildSnapshot);
     }
 
     @Scheduled(
@@ -41,20 +46,13 @@ public class ClickAnalyticsAgentService {
     )
     @Transactional(readOnly = true)
     public void refreshSnapshots() {
-        if (snapshots.isEmpty()) {
-            SnapshotKey defaultKey = new SnapshotKey(DEFAULT_PERIOD_DAYS, DEFAULT_LIMIT);
+        // 기본 화면만 미리 갱신하고, 다른 조회 조건은 요청 시 계산합니다.
+        SnapshotKey defaultKey = new SnapshotKey(DEFAULT_PERIOD_DAYS, DEFAULT_LIMIT);
+        try {
             snapshots.put(defaultKey, buildSnapshot(defaultKey));
-            return;
+        } catch (RuntimeException exception) {
+            log.warn("[DOKHUB] Click analytics refresh failed", exception);
         }
-
-        new ArrayList<>(snapshots.keySet()).forEach(key -> {
-            try {
-                snapshots.put(key, buildSnapshot(key));
-            } catch (RuntimeException exception) {
-                log.warn("[DOKHUB] 클릭 분석 스냅샷 갱신 실패(periodDays={}, limit={})",
-                        key.periodDays(), key.limit(), exception);
-            }
-        });
     }
 
     private ClickAnalyticsResponse buildSnapshot(SnapshotKey key) {

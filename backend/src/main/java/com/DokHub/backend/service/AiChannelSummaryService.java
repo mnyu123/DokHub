@@ -26,7 +26,7 @@ public class AiChannelSummaryService {
         this.youTubeService = youTubeService;
     }
 
-    @Cacheable(value = "aiChannelSummary", key = "#category + ':' + #periodDays")
+    @Cacheable(value = "aiChannelSummary", key = "#category + ':' + T(java.lang.Math).max(1, T(java.lang.Math).min(#periodDays, 30))", sync = true)
     public AiChannelSummaryResponse buildSummary(String category, int periodDays) {
         int safePeriodDays = Math.max(1, Math.min(periodDays, 30));
 

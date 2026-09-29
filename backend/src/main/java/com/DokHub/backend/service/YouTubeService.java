@@ -3,21 +3,22 @@ package com.DokHub.backend.service;
 import com.DokHub.backend.dto.VideoInfoDto;
 import com.DokHub.backend.dto.YouTubeChannelResponse;
 import com.DokHub.backend.dto.YouTubeSearchResponse;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;     // ^^^ 추가
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled; // ^^^ 추가
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -28,15 +29,19 @@ public class YouTubeService {
     private final AtomicInteger currentKeyIndex = new AtomicInteger(0);
     private final RestTemplate restTemplate;
 
-    // ^^^ 캐싱을 직접 관리하는 ConcurrentHashMap
-    private final ConcurrentHashMap<String, List<VideoInfoDto>> recentVideosCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> thumbnailsCache = new ConcurrentHashMap<>();
+    // 로컬 캐시는 크기와 보관 시간을 제한합니다.
+    private final Cache<String, List<VideoInfoDto>> recentVideosCache = Caffeine.newBuilder()
+            .maximumSize(128).expireAfterWrite(Duration.ofHours(6)).build();
+    private final Cache<String, String> thumbnailsCache = Caffeine.newBuilder()
+            .maximumSize(256).expireAfterWrite(Duration.ofHours(6)).build();
 
     // 2025-09-06 : 플레이리스트 관리용 map 추가
-    private final ConcurrentHashMap<String, List<VideoInfoDto>> playlistItemsCache = new ConcurrentHashMap<>();
+    private final Cache<String, List<VideoInfoDto>> playlistItemsCache = Caffeine.newBuilder()
+            .maximumSize(64).expireAfterWrite(Duration.ofHours(6)).build();
 
     // 2026-04-14 : 독케익 다시보기 플레이리스트 관리용 map 추가
-    private final ConcurrentHashMap<String, List<VideoInfoDto>> channelVideosCache = new ConcurrentHashMap<>();
+    private final Cache<String, List<VideoInfoDto>> channelVideosCache = Caffeine.newBuilder()
+            .maximumSize(128).expireAfterWrite(Duration.ofHours(6)).build();
 
     /**
      * 생성자에서는 properties 파일에 설정된 API 키 문자열(콤마 구분)을 받아 List로 변환합니다.
@@ -87,10 +92,29 @@ public class YouTubeService {
 
     /**
      * 채널 썸네일을 배치로 가져오는 메서드
-     * 캐싱(@Cacheable)과 동시에 로컬 캐시(thumbnailsCache)에도 저장
+     * 이미 저장된 채널을 제외하고 필요한 썸네일만 조회합니다.
      */
-    @Cacheable(value = "channelThumbnailsBatch", key = "#channelIds")
-    public Map<String, String> getChannelThumbnailsBatch(List<String> channelIds) {
+    public synchronized Map<String, String> getChannelThumbnailsBatch(List<String> channelIds) {
+        Map<String, String> result = new HashMap<>();
+        List<String> missingIds = new ArrayList<>();
+        for (String channelId : channelIds) {
+            if (channelId == null || channelId.isBlank()) {
+                continue;
+            }
+            String thumbnail = thumbnailsCache.getIfPresent(channelId);
+            if (thumbnail != null) {
+                result.put(channelId, thumbnail);
+            } else if (!missingIds.contains(channelId)) {
+                missingIds.add(channelId);
+            }
+        }
+        if (!missingIds.isEmpty()) {
+            result.putAll(fetchChannelThumbnails(missingIds));
+        }
+        return result;
+    }
+
+    private Map<String, String> fetchChannelThumbnails(List<String> channelIds) {
         if (channelIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -123,6 +147,7 @@ public class YouTubeService {
             ));
 
             // 로컬 캐시에 저장
+            channelIds.forEach(channelId -> resultMap.putIfAbsent(channelId, ""));
             thumbnailsCache.putAll(resultMap);
             return resultMap;
         } catch (RestClientException e) {
@@ -139,6 +164,7 @@ public class YouTubeService {
                             YouTubeChannelResponse.Item::getId,
                             item -> item.getSnippet().getThumbnails().getDefaultThumbnail().getUrl()
                     ));
+                    channelIds.forEach(channelId -> resultMap.putIfAbsent(channelId, ""));
                     thumbnailsCache.putAll(resultMap);
                     return resultMap;
                 } catch (Exception ex) {
@@ -153,25 +179,19 @@ public class YouTubeService {
      * 단일 채널의 썸네일을 가져오며 로컬 캐시를 우선적으로 활용하는 편의 메서드
      */
     public String getChannelThumbnailCached(String channelId) {
-        if (thumbnailsCache.containsKey(channelId)) {
-            return thumbnailsCache.get(channelId);
-        }
         Map<String, String> batchResult = getChannelThumbnailsBatch(Collections.singletonList(channelId));
         return batchResult.getOrDefault(channelId, "");
     }
 
     /**
      * 특정 채널의 최근 비디오 리스트를 가져오는 메서드
-     * 캐싱(@Cacheable)과 동시에 로컬 캐시(recentVideosCache)에도 저장
+     * 동일한 채널의 동시 요청은 한 번만 조회합니다.
      */
-    @Cacheable(value = "youtubeVideos", key = "#channelId")
     public List<VideoInfoDto> getRecentVideos(String channelId) {
         if (channelId == null || channelId.isEmpty()) {
             return Collections.emptyList();
         }
-        List<VideoInfoDto> videos = fetchRecentVideosFromApi(channelId);
-        recentVideosCache.put(channelId, videos);
-        return videos;
+        return recentVideosCache.get(channelId, this::fetchRecentVideosFromApi);
     }
 
     /**
@@ -180,9 +200,6 @@ public class YouTubeService {
     public List<VideoInfoDto> getRecentVideosCached(String channelId) {
         if (channelId == null || channelId.isEmpty()) {
             return Collections.emptyList();
-        }
-        if (recentVideosCache.containsKey(channelId)) {
-            return recentVideosCache.get(channelId);
         }
         return getRecentVideos(channelId);
     }
@@ -298,53 +315,40 @@ public class YouTubeService {
      * 재생목록 아이템(최대 50) 캐시 우선 반환
      */
     public List<VideoInfoDto> getPlaylistItemsCached(String playlistId, int maxResults) {
-        String key = playlistId + ":" + maxResults;
-        if (playlistItemsCache.containsKey(key)) {
-            return playlistItemsCache.get(key);
-        }
-        List<VideoInfoDto> items = getPlaylistItems(playlistId, maxResults);
-        if (items != null && !items.isEmpty()) {
-            playlistItemsCache.put(key, items);
-        }
-        //playlistItemsCache.put(key, items);
-        return items;
+        return getPlaylistItems(playlistId, maxResults);
     }
 
     /**
      * 유튜브 독케익 다시보기 전용으로 다시 만든 서비스 2026.04.14
      */
     public List<VideoInfoDto> getChannelVideosCached(String channelId, int maxResults) {
-        String key = channelId + ":" + maxResults;
-        if (channelVideosCache.containsKey(key)) {
-            return channelVideosCache.get(key);
-        }
-        List<VideoInfoDto> items = getChannelVideos(channelId, maxResults);
-        if (items != null && !items.isEmpty()) { // 데이터를 가져와야 캐시에 저장하지
-            channelVideosCache.put(key, items);
-        }
-        //channelVideosCache.put(key, items);
-        return items;
+        return getChannelVideos(channelId, maxResults);
     }
 
-    @Cacheable(value = "youtubeChannelVideos", key = "#channelId + ':' + #maxResults")
     public List<VideoInfoDto> getChannelVideos(String channelId, int maxResults) {
         if (channelId == null || channelId.isBlank()) {
             return Collections.emptyList();
         }
 
         int clamped = Math.max(1, Math.min(maxResults, 25));
-        List<VideoInfoDto> videos = fetchChannelVideosFromApi(channelId, clamped);
-        channelVideosCache.put(channelId + ":" + clamped, videos);
-        return videos;
+        return channelVideosCache.get(channelId + ":" + clamped,
+                key -> fetchChannelVideosFromApi(channelId, clamped));
     }
 
     /**
      * 유튜브 재생목록 전용으로 만든 서비스
      */
-    @Cacheable(value = "youtubePlaylistItems", key = "#playlistId + ':' + #maxResults")
     public List<VideoInfoDto> getPlaylistItems(String playlistId, int maxResults) {
         if (playlistId == null || playlistId.isBlank()) return Collections.emptyList();
         int clamped = Math.max(1, Math.min(maxResults, 50));
+        List<VideoInfoDto> items = playlistItemsCache.get(playlistId + ":" + clamped, key -> {
+            List<VideoInfoDto> fetchedItems = fetchPlaylistItems(playlistId, clamped);
+            return fetchedItems.isEmpty() ? null : fetchedItems;
+        });
+        return items == null ? Collections.emptyList() : items;
+    }
+
+    private List<VideoInfoDto> fetchPlaylistItems(String playlistId, int clamped) {
         String url = "https://www.googleapis.com/youtube/v3/playlistItems"
                 + "?part=snippet"
                 + "&playlistId=" + playlistId
@@ -409,31 +413,28 @@ public class YouTubeService {
      * 주기적으로 전체 캐시를 갱신(무효화)하는 스케줄 메서드 (6시간마다 실행)
      */
     @Scheduled(fixedRate = 21600000) // 6시간 마다 실행
-    //@CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch"}, allEntries = true)
-    @CacheEvict(value = {"youtubeVideos", "channelThumbnailsBatch", "youtubePlaylistItems", "youtubeChannelVideos", "aiChannelSummary"}, allEntries = true)
+    @CacheEvict(value = "aiChannelSummary", allEntries = true)
     public void refreshCache() {
-        recentVideosCache.clear();
-        thumbnailsCache.clear();
-        playlistItemsCache.clear(); // 재생목록 캐시 비우기 추가
-        channelVideosCache.clear(); // 독케익 다시보기 캐시 비우기 추가
+        recentVideosCache.invalidateAll();
+        thumbnailsCache.invalidateAll();
+        playlistItemsCache.invalidateAll(); // 재생목록 캐시 비우기 추가
+        channelVideosCache.invalidateAll(); // 독케익 다시보기 캐시 비우기 추가
         log.info("[DOKHUB] YouTube 캐시를 갱신했습니다.");
     }
 
     /**
      * 특정 채널의 '최근 영상' 캐시를 강제로 비우는 메서드
      */
-    @CacheEvict(value = "youtubeVideos", key = "#channelId")
     public void clearRecentVideosCache(String channelId) {
-        recentVideosCache.remove(channelId);
+        recentVideosCache.invalidate(channelId);
         log.info("[DOKHUB] 채널 최근 영상 캐시를 비웠습니다. channelId={}", channelId);
     }
 
     /**
      * 특정 채널들의 썸네일 캐시를 강제로 비우는 메서드
      */
-    @CacheEvict(value = "channelThumbnailsBatch", key = "#channelIds")
     public void clearThumbnailsCache(List<String> channelIds) {
-        channelIds.forEach(thumbnailsCache::remove);
+        thumbnailsCache.invalidateAll(channelIds);
         log.info("[DOKHUB] 채널 썸네일 캐시를 비웠습니다. count={}", channelIds.size());
     }
 }
