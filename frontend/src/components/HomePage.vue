@@ -1,6 +1,5 @@
 <template>
   <div class="container mx-auto px-6 lg:px-12 space-y-10 py-8">
-    <TabNavigation :selectedTab="selectedTab" @update:tab="selectedTab=$event" />
     <LiveStatus class="my-6" />
 
     <ChannelSlider @loaded-video-ids="sliderVideoIds = $event" />
@@ -13,6 +12,8 @@
       v-if="selectedTab !== 'replay'"
       :category="selectedTab"
     />
+    
+    <TabNavigation :selectedTab="selectedTab" @update:tab="selectedTab=$event" />
 
     <ChannelList
       :selectedTab="selectedTab"
