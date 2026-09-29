@@ -10,6 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RequestRateLimiterTest {
 
     @Test
+    void rejectsNewClientsAtCapacityWithoutResettingExistingLimits() {
+        RequestRateLimiter limiter = new RequestRateLimiter();
+        for (int index = 0; index < 10_000; index++) {
+            assertTrue(limiter.allow("client-" + index, 1, Duration.ofDays(1)));
+        }
+        assertFalse(limiter.allow("extra-client", 1, Duration.ofDays(1)));
+        assertFalse(limiter.allow("client-0", 1, Duration.ofDays(1)));
+    }
+
+    @Test
     void blocksRequestsOverTheWindowLimit() {
         RequestRateLimiter limiter = new RequestRateLimiter();
 

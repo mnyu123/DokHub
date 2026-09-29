@@ -23,7 +23,6 @@ public class ChzzkLiveService {
 
     private static final String BASE_CHZZK_API_URL = "https://openapi.chzzk.naver.com/open/v1/lives";
     private static final String TARGET_CHANNEL_ID = "b68af124ae2f1743a1dcbf5e2ab41e0b";
-    private static final long CACHE_MILLIS = 45_000L;
 
     @Value("${chzzk.client.id:}")
     private String clientId;
@@ -31,6 +30,8 @@ public class ChzzkLiveService {
     private String clientSecret;
     @Value("${chzzk.live.enabled:true}")
     private boolean liveEnabled;
+    @Value("${chzzk.live.cache-millis:120000}")
+    private long cacheMillis = 120000L;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -51,18 +52,18 @@ public class ChzzkLiveService {
 
     public boolean isChannelLive() {
         long now = System.currentTimeMillis();
-        if (now - cachedAt < CACHE_MILLIS) {
+        if (now - cachedAt < cacheMillis) {
             return cachedLive;
         }
 
         synchronized (cacheLock) {
             now = System.currentTimeMillis();
-            if (now - cachedAt < CACHE_MILLIS) {
+            if (now - cachedAt < cacheMillis) {
                 return cachedLive;
             }
             cachedLive = fetchChannelLive();
-            cachedAt = now;
-            chzzkChatService.ensureChatConnection(cachedLive);
+            cachedAt = System.currentTimeMillis();
+            chzzkChatService.updateChatConnection(cachedLive);
             return cachedLive;
         }
     }
@@ -92,7 +93,7 @@ public class ChzzkLiveService {
                     if (exception.getStatusCode() == HttpStatus.BAD_REQUEST
                             || exception.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                         log.warn("[DOKHUB] Chzzk 라이브 조회 중단(status={})", exception.getStatusCode());
-                        return false;
+                        return cachedLive;
                     }
                     throw exception;
                 }
@@ -115,7 +116,7 @@ public class ChzzkLiveService {
         } catch (Exception exception) {
             log.error("[DOKHUB] Chzzk 방송 상태 조회 실패", exception);
         }
-        return false;
+        return cachedLive;
     }
 
     private boolean isBlank(String value) {
