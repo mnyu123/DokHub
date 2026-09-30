@@ -1,17 +1,17 @@
 <!-- src/components/HeaderComponent.vue -->
 <template>
   <header
-    class="navbar bg-base-100 shadow-md px-6 flex items-center justify-between overflow-visible"
+    class="navbar bg-base-100 shadow-md px-3 sm:px-6 flex items-center justify-between overflow-visible min-h-14 sm:min-h-16"
   >
     <!-- 햄버거 토글 (작게) -->
-    <label for="drawer-left" class="btn btn-ghost lg:hidden p-2 mr-4">
+    <label for="drawer-left" class="btn btn-ghost lg:hidden p-2 mr-2 sm:mr-4" aria-label="메뉴 열기">
       <span class="text-xl" aria-hidden="true">☰</span>
     </label>
 
     <!-- 로고 -->
-    <router-link to="/" class="flex items-center gap-2">
-      <img src="@/assets/dokhublogo.png" class="h-8 w-auto logo-anim" />
-      <span class="text-xl font-bold">독허브</span>
+    <router-link to="/" class="flex items-center gap-2 min-w-0">
+      <img src="@/assets/dokhublogo.png" alt="" class="h-8 w-auto logo-anim" />
+      <span class="text-lg sm:text-xl font-bold whitespace-nowrap">독허브</span>
     </router-link>
 
     <!-- 가운데 빈 공간 확보 -->
@@ -19,7 +19,7 @@
 
     <!-- 우측: 업데이트 호버 영역 -->
     <div
-      class="relative"
+      class="relative hidden sm:block"
       @mouseenter="hover = true"
       @mouseleave="hover = false"
     >

@@ -5,7 +5,7 @@
     <!-- 메인 콘텐츠 -->
     <div class="drawer-content flex flex-col min-h-screen">
       <HeaderComponent :theme="theme" @toggle-theme="toggleTheme" />
-      <router-view class="flex-1 p-4" />
+      <router-view class="flex-1 p-0 sm:p-4" />
       <FooterComponent :isDark="theme==='dark'" />
     </div>
 
@@ -19,7 +19,8 @@
       <!-- 독채팅 FAB -->
       <button
         @click="goChat"
-        class="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-focus transition z-[95]"
+        aria-label="독채팅 열기"
+        class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-3 sm:p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-focus transition z-[95]"
       >
         <svg
           aria-hidden="true"
@@ -39,7 +40,7 @@
       <button
         v-if="liveStatus.liveOn"
         @click="goLive"
-        class="fixed bottom-20 right-6 p-4 bg-red-500 text-white rounded-full shadow-lg animate-pulse transition z-[100]"
+        class="fixed bottom-20 right-4 sm:right-6 p-3 sm:p-4 bg-red-500 text-white rounded-full shadow-lg animate-pulse transition z-[100]"
       >
         LIVE
       </button>

@@ -9,13 +9,13 @@
       <!-- 페이지네이션 시 스크롤 기준점 -->
        <div ref="gridTopRef" class="h-0"></div>
       <!-- 1) replay 탭을 제외한 모든 탭에서: 클립 그리드 -->
-      <div v-if="isGridMode" class="mt-8">
-        <h2 class="text-4xl font-bold text-white mb-6">클립</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+      <div v-if="isGridMode" class="mt-3 sm:mt-8">
+        <h2 class="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6">클립</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
           <div
             v-for="clip in displayedClips"
             :key="clip.videoId"
-            class="card bg-base-100 shadow-md hover:shadow-lg transition py-4"
+            class="card bg-base-100 shadow-md hover:shadow-lg transition overflow-hidden sm:py-4"
           >
             <a
               :href="`https://youtu.be/${clip.videoId}`"
@@ -27,7 +27,7 @@
               <img
                 :src="getHighRes(clip.thumbnailUrl)"
                 @error="$event.target.src = defaultImg"
-                class="w-full h-64 object-cover rounded-t-md"
+                class="w-full aspect-video sm:aspect-auto sm:h-64 object-cover"
                 alt="클립 썸네일"
               />
             </a>
@@ -36,7 +36,7 @@
                 :href="`https://youtu.be/${clip.videoId}`"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="font-semibold truncate block hover:text-primary hover:underline"
+                class="font-semibold line-clamp-2 sm:truncate block hover:text-primary hover:underline"
                 @click="trackVideoClick(clip, props.selectedTab)"
               >
                 {{ clip.videoTitle }}
@@ -55,8 +55,8 @@
       </div>
 
             <!-- 2) replay 탭일 때만: 채널 리스트 -->
-      <div v-else class="space-y-4 mt-8">
-        <h2 class="text-3xl font-bold">리플레이 재생목록</h2>
+      <div v-else class="space-y-4 mt-3 sm:mt-8">
+        <h2 class="text-2xl sm:text-3xl font-bold">리플레이 재생목록</h2>
         <!-- 백엔드에서 재생목록 아이템을 받아 세로 카드로 나열 -->
         <div
           v-for="it in replayItems"
@@ -78,7 +78,7 @@
             <img
               :src="getHighRes(it.thumbnailUrl)"
               @error="$event.target.src = defaultImg"
-              class="w-48 h-28 object-cover rounded-l-md"
+              class="w-32 h-24 sm:w-48 sm:h-28 flex-none object-cover rounded-l-md"
               alt="리플레이 썸네일"
             />
             <div class="p-3 flex-1">
@@ -100,7 +100,7 @@
       </div>
 
       <!-- 3) 페이징 -->
-      <div v-if="isGridMode" class="flex justify-center items-center gap-6 my-8">
+      <div v-if="isGridMode" class="flex justify-center items-center gap-3 sm:gap-6 my-8">
         <button class="btn btn-sm" @click="prevPage" :disabled="isPrevDisabled">
           이전
         </button>
