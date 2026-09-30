@@ -81,9 +81,9 @@ const fixedLinks = [
     label:  '팬아트'
   },
   {
-    href: 'https://thunder-plant-4a0.notion.site/d7cdf50c1aeb4385a4945057caddaf8b',
+    href: 'https://functional-quark-845.notion.site/3e84bd9bc25680e3a819d301ca9825ef',
     imgSrc: require('@/assets/dok_game_lib_ico2.png'),
-    alt:    '독케익 종합게임 라이브러리',
+    alt:    '(신규)독케익 종합게임 라이브러리',
     label:  '게임'
   },
   {
