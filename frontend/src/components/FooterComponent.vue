@@ -1,5 +1,5 @@
 <template>
-  <footer class="footer text-center p-3 border-top" :class="footerBg">
+  <footer class="footer text-center px-4 py-6 sm:p-3 gap-3 text-xs sm:text-sm border-top break-words" :class="footerBg">
     <p class="m-0 footer-text">
       문의/버그 제보:
       <a href="mailto:roqkfejrdl@gmail.com" class="footer-link">roqkfejrdl@gmail.com</a>

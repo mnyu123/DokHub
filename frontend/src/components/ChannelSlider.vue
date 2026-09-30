@@ -1,10 +1,10 @@
 <template>
   <div>
     <!-- 슬라이더 상단 제목 -->
-    <h2 class="text-4xl font-bold text-white mb-6">신규 클립</h2>
+    <h2 class="text-2xl sm:text-4xl font-bold mb-3 sm:mb-6">신규 클립</h2>
 
     <!-- 내비 버튼 가시성 강화를 위한 래퍼 -->
-    <div class="clip-swiper group h-80 py-6">
+    <div class="clip-swiper group h-64 sm:h-80 py-2 sm:py-6">
       <Swiper
         :modules="[Navigation, Pagination, A11y]"
         slides-per-view="auto"
@@ -12,14 +12,13 @@
         grabCursor
         navigation
         :pagination="{ clickable: true }"
-        :initial-slide="3"
+        :initial-slide="initialSlide"
         class="h-full"
       >
       <SwiperSlide
         v-for="clip in sliderClips"
         :key="clip.videoId"
-        class="mx-3 flex-shrink-0 overflow-hidden rounded-lg shadow-md"
-        style="width: 300px;"
+        class="clip-slide mx-2 sm:mx-3 flex-shrink-0 overflow-hidden rounded-lg shadow-md"
       >
         <a
           :href="`https://youtu.be/${clip.videoId}`"
@@ -31,7 +30,7 @@
           <img
             :src="getHighRes(clip.thumbnailUrl)"
             @error="$event.target.src = defaultImg"
-            class="w-full h-48 object-cover rounded-t-md"
+            class="w-full h-40 sm:h-48 object-cover rounded-t-md"
             :alt="clip.videoTitle"
           />
           <div class="p-3 bg-base-100">
@@ -57,6 +56,7 @@ import defaultImg from '@/assets/default_thumbnail.svg'
 
 const emit = defineEmits(['loaded-video-ids'])
 const sliderClips = ref([])
+const initialSlide = window.matchMedia('(max-width: 639px)').matches ? 0 : 3
 
 async function fetchSliderClips() {
   const { data } = await api.get('/api/channels/clip', { params: { page: 0, size: 7 } })
@@ -103,6 +103,9 @@ onMounted(fetchSliderClips)
 /* 래퍼에서 오버레이/버튼 스타일 제어 */
 .clip-swiper {
   position: relative;
+}
+.clip-slide {
+  width: min(82vw, 300px);
 }
 /* 좌/우 명암 오버레이(hover 시 강조) */
 .clip-swiper::before,
@@ -155,5 +158,13 @@ onMounted(fetchSliderClips)
   -webkit-text-stroke: 2px rgba(255,255,255,0.9);    /* 화살표 외곽선(화이트) */
   text-shadow: 0 0 6px rgba(0,0,0,0.6);              /* 가독성 향상 */
   color: white;
+}
+@media (max-width: 639px) {
+  .clip-swiper::before,
+  .clip-swiper::after,
+  .clip-swiper :deep(.swiper-button-prev),
+  .clip-swiper :deep(.swiper-button-next) {
+    display: none;
+  }
 }
 </style>

@@ -18,7 +18,7 @@
     </div>
 
     <template v-else-if="analytics">
-      <p class="click-insight__summary">{{ analytics.summary }}</p>
+      <p class="click-insight__summary" :class="{ 'is-expanded': expanded }">{{ analytics.summary }}</p>
 
       <div class="click-insight__metrics">
         <div>
@@ -35,6 +35,18 @@
         </div>
       </div>
 
+      <button
+        v-if="hasRankings || hasDailyClicks"
+        type="button"
+        class="click-insight__expand"
+        :aria-expanded="expanded"
+        @click="expanded = !expanded"
+      >
+        {{ expanded ? '상세 접기' : '순위와 클릭 흐름 보기' }}
+        <span aria-hidden="true">{{ expanded ? '⌃' : '⌄' }}</span>
+      </button>
+
+      <div class="click-insight__details" :class="{ 'is-expanded': expanded }">
       <div v-if="hasRankings" class="click-insight__rankings">
         <RankingBars title="많이 선택한 채널" :items="analytics.topChannels" />
         <RankingBars title="많이 선택한 영상" :items="analytics.topVideos" />
@@ -62,6 +74,7 @@
           </div>
         </div>
       </div>
+      </div>
 
       <p class="click-insight__updated">
         {{ formatUpdatedAt(analytics.generatedAt) }} 기준 · 최근 {{ analytics.periodDays }}일 집계
@@ -78,6 +91,7 @@ const REFRESH_INTERVAL_MS = 30 * 60 * 1000
 const analytics = ref(null)
 const loading = ref(true)
 const error = ref(false)
+const expanded = ref(false)
 let refreshTimer
 
 const hasRankings = computed(() =>
@@ -379,10 +393,82 @@ onBeforeUnmount(() => window.clearInterval(refreshTimer))
   font-size: 0.78rem;
 }
 
+.click-insight__expand {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .click-insight {
-    padding: 1.1rem;
+    padding: 1rem;
     border-radius: 1rem;
+  }
+
+  .click-insight__header {
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .click-insight h2 {
+    font-size: 1.2rem;
+  }
+
+  .click-insight__status {
+    flex: none;
+    padding: 0.25rem 0.45rem;
+    font-size: 0.65rem;
+  }
+
+  .click-insight__summary {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .click-insight__summary.is-expanded {
+    display: block;
+  }
+
+  .click-insight__metrics {
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+  }
+
+  .click-insight__metrics > div {
+    padding: 0.6rem 0.45rem;
+    text-align: center;
+  }
+
+  .click-insight__metrics strong {
+    font-size: 1.2rem;
+  }
+
+  .click-insight__metrics span {
+    font-size: 0.65rem;
+  }
+
+  .click-insight__expand {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.55rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.75rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.8rem;
+  }
+
+  .click-insight__details {
+    display: none;
+  }
+
+  .click-insight__details.is-expanded {
+    display: block;
   }
 
   .click-insight__rankings {
@@ -391,6 +477,11 @@ onBeforeUnmount(() => window.clearInterval(refreshTimer))
 
   .click-insight__columns {
     gap: 0.2rem;
+    min-width: 26rem;
+  }
+
+  .click-insight__trend {
+    overflow-x: auto;
   }
 
   .click-insight__column-label {
