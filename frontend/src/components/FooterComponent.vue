@@ -5,7 +5,7 @@
       <a href="mailto:roqkfejrdl@gmail.com" class="footer-link">roqkfejrdl@gmail.com</a>
     </p>
     <p class="m-0 footer-text">
-      독허브는 개인정보와 IP를 무단으로 수집·판매하지 않습니다.
+      영상 클릭은 독허브 자체 통계로 집계되며, 독케익 채팅 기록은 공개됩니다.
     </p>
     <p class="m-0 footer-text">
       이 서비스는 YouTube API Services를 사용합니다.&nbsp;

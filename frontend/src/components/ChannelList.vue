@@ -10,7 +10,10 @@
        <div ref="gridTopRef" class="h-0"></div>
       <!-- 1) replay 탭을 제외한 모든 탭에서: 클립 그리드 -->
       <div v-if="isGridMode" class="mt-3 sm:mt-8">
-        <h2 class="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6">클립</h2>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
+          <h2 class="text-2xl sm:text-4xl font-bold">클립</h2>
+          <YouTubeAttribution />
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
           <div
             v-for="clip in displayedClips"
@@ -56,7 +59,10 @@
 
             <!-- 2) replay 탭일 때만: 채널 리스트 -->
       <div v-else class="space-y-4 mt-3 sm:mt-8">
-        <h2 class="text-2xl sm:text-3xl font-bold">리플레이 재생목록</h2>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-2xl sm:text-3xl font-bold">리플레이 재생목록</h2>
+          <YouTubeAttribution />
+        </div>
         <!-- 백엔드에서 재생목록 아이템을 받아 세로 카드로 나열 -->
         <div
           v-for="it in replayItems"
@@ -117,6 +123,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import api from '@/api'
 import defaultImg from '@/assets/default_thumbnail.svg'
+import YouTubeAttribution from './YouTubeAttribution.vue'
 
 const props = defineProps({
   selectedTab: { type: String, required: true },
