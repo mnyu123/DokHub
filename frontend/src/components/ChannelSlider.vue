@@ -1,7 +1,10 @@
 <template>
   <div>
     <!-- 슬라이더 상단 제목 -->
-    <h2 class="text-2xl sm:text-4xl font-bold mb-3 sm:mb-6">신규 클립</h2>
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
+      <h2 class="text-2xl sm:text-4xl font-bold">신규 클립</h2>
+      <YouTubeAttribution />
+    </div>
 
     <!-- 내비 버튼 가시성 강화를 위한 래퍼 -->
     <div class="clip-swiper group h-64 sm:h-80 py-2 sm:py-6">
@@ -53,6 +56,7 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import defaultImg from '@/assets/default_thumbnail.svg'
+import YouTubeAttribution from './YouTubeAttribution.vue'
 
 const emit = defineEmits(['loaded-video-ids'])
 const sliderClips = ref([])
